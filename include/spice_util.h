@@ -10,10 +10,14 @@ typedef enum {
     SUCCESS
 } sp_status;
 
+#define spice_error(msg, ...) fprintf(stderr, "[ERROR %s:L%d]: ", __FILE__, __LINE__); fprintf(stderr, msg, __VA_ARGS__);
+
 #define SPICE_KEYMAX 32
 #define SPICE_STRMAX 512
 #define sp_strcmp(a, b) (strncmp(a, b, SPICE_STRMAX) == 0)
+#define sp_keycmp(a, b) (strncmp(a, b, SPICE_KEYMAX) == 0)
 #define sp_strcpy(dest, src) strncpy(dest, src, SPICE_STRMAX)
+#define sp_keycpy(dest, src) strncpy(dest, src, SPICE_KEYMAX)
 
 #define SPICE_HASHMAP_INITIAL_CAPACITY 32
 #define SPICE_HASHMAP_INITIAL_BUCKET_SIZE 32

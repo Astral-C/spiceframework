@@ -56,9 +56,10 @@ void spiceFreeSprite(sp_sprite* sprite){
     sprite->_ref_count--;
 }
 
-void spiceDrawSprite(sp_sprite* sprite, float x, float y, float rotation){
+void spiceDrawSprite(sp_sprite* sprite, float x, float y, float rotation, uint32_t row, float frame){
     if(sprite == NULL) return;
-    GPU_BlitTransform(sprite->texture, NULL, sprite_manager._window_target, x, y, rotation, 1, 1);
+    GPU_Rect src = (GPU_Rect){((uint32_t)frame) * sprite->frame_w, row * sprite->frame_h, sprite->frame_w, sprite->frame_h};
+    GPU_BlitTransform(sprite->texture, &src, sprite_manager._window_target, x, y, rotation, 1, 1);
 }
 
 void spiceSpriteClose(){

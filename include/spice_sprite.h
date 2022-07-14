@@ -8,7 +8,7 @@ typedef struct {
     uint64_t _id;
     uint32_t _ref_count;
     GPU_Image* texture;
-
+    uint16_t frame_w, frame_h;
 } sp_sprite;
 
 typedef struct {
@@ -25,7 +25,7 @@ sp_sprite* spiceLoadSprite(char* path);
 
 void spiceFreeSprite(sp_sprite* sprite);
 
-void spiceDrawSprite(sp_sprite* sprite, float x, float y, float rotation);
+void spiceDrawSprite(sp_sprite* sprite, float x, float y, float rotation, uint32_t row, float frame);
 
 void spiceSpriteClose();
 

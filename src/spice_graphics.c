@@ -7,7 +7,7 @@ void spiceGraphicsInit(int width, int height, int target_fps, int window_flags){
         return; //fail
     }
 
-    graphics.window_target = GPU_Init(width, height, GPU_DEFAULT_INIT_FLAGS);
+    graphics.window_target = GPU_Init(width, height, window_flags);
 
     graphics.target_fps = target_fps;
     graphics.ticks_per_frame = 1000 / target_fps;
@@ -40,4 +40,12 @@ void spiceGraphicsStep(){
         SDL_Delay(graphics.ticks_per_frame - cur_frame_ticks);
     }
 
+}
+
+void spDrawPolygon(sp_convex_polygon* polygon){
+    if(polygon->colliding == 1){
+        GPU_Polygon(graphics.window_target, polygon->point_count, (float*)polygon->points, (SDL_Color){0x00,0xFF,0xAA,0xFF});
+    } else {
+        GPU_Polygon(graphics.window_target, polygon->point_count, (float*)polygon->points, (SDL_Color){0xFF,0xFF,0xFF,0xFF});
+    }
 }

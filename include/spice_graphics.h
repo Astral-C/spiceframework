@@ -2,6 +2,7 @@
 #define __SPICE_GRAPHICS_H__
 #include <SDL2/SDL.h>
 #include <SDL_gpu.h>
+#include <spice_collision.h>
 
 typedef struct {
     SDL_Window* window;
@@ -21,5 +22,7 @@ void spiceGraphicsClose();
 void spiceGraphicsDraw();
 
 void spiceGraphicsStep();
+
+void spDrawPolygon(sp_convex_polygon* polygon);
 
 #endif

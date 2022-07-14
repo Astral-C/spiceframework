@@ -4,6 +4,7 @@
 #define vec2_add(v1, v2, dest) dest.x = v1.x + v2.x; dest.y = v1.y + v2.y;
 #define vec2_sub(v1, v2, dest) dest.x = v1.x - v2.x; dest.y = v1.y - v2.y;
 #define vec2_mul(v1, v2, dest) dest.x = v1.x * v2.x; dest.y = v1.y * v2.y;
+#define vec2_dot(v1, v2) ((v1.x * v2.x) + (v1.y * v2.y))
 
 typedef struct {
     float x, y;
