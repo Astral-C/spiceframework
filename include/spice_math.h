@@ -6,6 +6,11 @@
 #define vec2_mul(v1, v2, dest) dest.x = v1.x * v2.x; dest.y = v1.y * v2.y;
 #define vec2_dot(v1, v2) ((v1.x * v2.x) + (v1.y * v2.y))
 
+#define lerpf(a, b, t) a + t * (b - a);
+
+#define lerpv2(d, a, b, t) d.x = lerpf(a.x, b.x, t); d.y = lerpf(a.x, b.y, t);
+#define lerpv3(d, a, b, t) d.x = lerpf(a.x, b.x, t); d.y = lerpf(a.x, b.y, t); d.z = lerpf(a.z, b.z, t);
+
 typedef struct {
     float x, y;
 } sp_vec2;
@@ -22,5 +27,6 @@ typedef union {
         float r, g, b, a;
     };
 } sp_vec4;
+
 
 #endif

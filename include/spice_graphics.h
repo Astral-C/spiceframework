@@ -7,6 +7,7 @@
 typedef struct {
     SDL_Window* window;
     GPU_Target* window_target;
+    GPU_Camera camera;
 
     uint32_t target_fps, ticks_per_frame;
     uint64_t cur_time, prev_time;
@@ -22,6 +23,10 @@ void spiceGraphicsClose();
 void spiceGraphicsDraw();
 
 void spiceGraphicsStep();
+
+void spiceGraphicsSetCamera(float x, float y, float zoom, float angle);
+
+void spiceGraphicsScreenMod(sp_vec4 color);
 
 void spDrawPolygon(sp_convex_polygon* polygon);
 

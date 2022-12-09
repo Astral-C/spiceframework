@@ -46,7 +46,7 @@ sp_status spHashmapAdd(sp_hashmap* map, char* key, void* data){
         }
     }
     
-    return SUCCESS;
+    return SP_SUCCESS;
 }
 
 sp_status spHashmapRemove(sp_hashmap* map, sp_str key){
@@ -63,7 +63,7 @@ sp_status spHashmapRemove(sp_hashmap* map, sp_str key){
         }
     }
 
-    return SUCCESS;
+    return SP_SUCCESS;
 }
 
 void* spHashmapGet(sp_hashmap* map, sp_str key){

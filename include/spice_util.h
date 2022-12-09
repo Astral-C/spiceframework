@@ -6,11 +6,20 @@
 #include <stdio.h>
 
 typedef enum {
-    ERROR,
-    SUCCESS
+    SP_ERROR,
+    SP_SUCCESS
 } sp_status;
 
-#define spice_error(msg, ...) fprintf(stderr, "[ERROR %s:L%d]: ", __FILE__, __LINE__); fprintf(stderr, msg, __VA_ARGS__);
+#ifdef __WIN32
+#define __FILENAME__ (strrchr(__FILE__, '\\')+1)
+#endif
+
+#ifdef __linux__
+#define __FILENAME__ (strrchr(__FILE__, '/')+1)
+#endif
+
+#define spice_error(msg, ...) fprintf(stderr, "[ERROR %s:L%d]: ", __FILENAME__, __LINE__); fprintf(stderr, msg, __VA_ARGS__);
+#define spice_info(msg, ...) fprintf(stderr, "[INFO %s:L%d]: ", __FILENAME__, __LINE__); fprintf(stderr, msg, __VA_ARGS__);
 
 #define SPICE_KEYMAX 32
 #define SPICE_STRMAX 512
@@ -51,6 +60,7 @@ typedef struct {
 
 sp_hashmap* spHashmapNew();
 void spHashmapFree(sp_hashmap* map);
+void spHashmapFreeItems(sp_hashmap* map);
 
 sp_status spHashmapAdd(sp_hashmap* map, char* key, void* data);
 sp_status spHashmapRemove(sp_hashmap* map, char* key);
