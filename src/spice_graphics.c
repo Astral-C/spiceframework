@@ -52,8 +52,6 @@ void spiceGraphicsInit(int width, int height, int target_fps, int window_flags, 
 }
 
 GPU_Target* spiceGraphicsWindowTarget(){
-    GPU_FreeShaderProgram(graphics._post_processing_shader);
-    GPU_FreeImage(graphics._post_processing_target);
     if(graphics._post_processing_target != NULL && graphics._post_processing_target->target != NULL){
         return graphics._post_processing_target->target;
     } else {
@@ -62,6 +60,9 @@ GPU_Target* spiceGraphicsWindowTarget(){
 }
 
 void spiceGraphicsClose(){
+    if(graphics._post_processing_shader) GPU_FreeShaderProgram(graphics._post_processing_shader);
+    if(graphics._post_processing_target) GPU_FreeImage(graphics._post_processing_target);
+    
     GPU_Quit();
     SDL_Quit();
 }
