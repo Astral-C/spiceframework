@@ -2,7 +2,7 @@
 
 static spice_graphics graphics = {0};
 
-void spiceGraphicsInit(int width, int height, int target_fps, int window_flags){
+void spiceGraphicsInit(int width, int height, int target_fps, int window_flags, char* post_processing_vertex, char* post_processing_fragment){
     if(SDL_Init(SDL_INIT_EVERYTHING) < 0){
         return; //fail
     }
@@ -15,11 +15,50 @@ void spiceGraphicsInit(int width, int height, int target_fps, int window_flags){
 
     graphics.camera = GPU_GetDefaultCamera();
 
+    if(post_processing_vertex != NULL && post_processing_fragment != NULL){
+        graphics._post_processing_target = GPU_CreateImage(width, height, GPU_FORMAT_RGBA);
+        GPU_GetTarget(graphics._post_processing_target);
+
+        Uint32 pp_vtx = GPU_LoadShader(GPU_VERTEX_SHADER, post_processing_vertex);
+
+        if(!pp_vtx){
+            spice_error("Failed to compile vertex shader: %s", GPU_GetShaderMessage());
+            GPU_FreeImage(graphics._post_processing_target);
+            graphics._post_processing_target = NULL;
+        }
+
+        Uint32 pp_frag = GPU_LoadShader(GPU_FRAGMENT_SHADER, post_processing_fragment);
+
+        if(!pp_frag){
+            spice_error("Failed to compile fragment shader: %s", GPU_GetShaderMessage());
+            GPU_FreeImage(graphics._post_processing_target);
+            graphics._post_processing_target = NULL;
+        }
+
+        graphics._post_processing_shader = GPU_LinkShaders(pp_vtx, pp_frag);
+
+        if(!graphics._post_processing_shader){
+            spice_error("Failed to link shaders: %s", GPU_GetShaderMessage());
+            GPU_FreeImage(graphics._post_processing_target);
+            graphics._post_processing_target = NULL;
+        }
+
+        graphics._post_processing_shader_params = GPU_LoadShaderBlock(graphics._post_processing_shader, "gpu_Vertex", "gpu_TexCoord", "gpu_Color", "gpu_ModelViewProjectionMatrix");
+    } else {
+        graphics._post_processing_target = NULL;
+    }
+
     atexit(spiceGraphicsClose);
 }
 
 GPU_Target* spiceGraphicsWindowTarget(){
-    return graphics.window_target;
+    GPU_FreeShaderProgram(graphics._post_processing_shader);
+    GPU_FreeImage(graphics._post_processing_target);
+    if(graphics._post_processing_target != NULL && graphics._post_processing_target->target != NULL){
+        return graphics._post_processing_target->target;
+    } else {
+        return graphics.window_target;
+    }
 }
 
 void spiceGraphicsClose(){
@@ -28,7 +67,16 @@ void spiceGraphicsClose(){
 }
 
 void spiceGraphicsDraw(){
-    GPU_SetCamera(graphics.window_target, &graphics.camera);
+    if(graphics._post_processing_target != NULL && graphics._post_processing_target.target){
+        GPU_SetCamera(graphics._post_processing_target->target, &graphics.camera);
+        GPU_ActivateShaderProgram(graphics._post_processing_shader, &graphics._post_processing_shader_params);
+        GPU_SetUniformf(GPU_GetUniformLocation(graphics._post_processing_shader, "time"), graphics.time);
+        GPU_Blit(graphics._post_processing_target, NULL, graphics.window_target, graphics.window_target->w / 2, graphics.window_target->h / 2);
+        GPU_DeactivateShaderProgram();
+    } else {
+        GPU_SetCamera(graphics.window_target, &graphics.camera);
+    }
+
     GPU_Flip(graphics.window_target);
     GPU_ClearColor(graphics.window_target, (SDL_Color){35, 35, 35, SDL_ALPHA_OPAQUE});
 }
@@ -51,16 +99,14 @@ void spiceGraphicsStep(){
 
     uint64_t cur_frame_ticks = graphics.cur_time - graphics.prev_time;
 
+    graphics.time += 1/graphics.target_fps;
+
     if(cur_frame_ticks < graphics.ticks_per_frame){
         SDL_Delay(graphics.ticks_per_frame - cur_frame_ticks);
     }
 
 }
 
-void spDrawPolygon(sp_convex_polygon* polygon){
-    if(polygon->colliding == 1){
-        GPU_Polygon(graphics.window_target, polygon->point_count, (float*)polygon->points, (SDL_Color){0x00,0xFF,0xAA,0xFF});
-    } else {
-        GPU_Polygon(graphics.window_target, polygon->point_count, (float*)polygon->points, (SDL_Color){0xFF,0xFF,0xFF,0xFF});
-    }
+void spiceGraphicsDrawPolygon(sp_convex_polygon* polygon, SDL_Color color){
+    GPU_Polygon(graphics.window_target, polygon->point_count, (float*)polygon->points, color);
 }

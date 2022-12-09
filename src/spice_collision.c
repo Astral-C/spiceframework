@@ -1,11 +1,11 @@
 #include <SDL_gpu.h>
 #include <spice_collision.h>
 
-sp_convex_polygon* spNewPolyConvex(size_t point_count){
+sp_convex_polygon* spiceNewPolyConvex(size_t point_count){
     sp_convex_polygon* poly = malloc(sizeof(sp_convex_polygon));
 }
 
-sp_convex_polygon* spInitPolyConvex(size_t point_count, const sp_vec2* points){
+sp_convex_polygon* spiceInitPolyConvex(size_t point_count, const sp_vec2* points){
     sp_convex_polygon* poly = malloc(sizeof(sp_convex_polygon));
     poly->point_count = point_count;
     poly->points = malloc(sizeof(sp_vec2) * point_count);
@@ -14,7 +14,7 @@ sp_convex_polygon* spInitPolyConvex(size_t point_count, const sp_vec2* points){
     return poly;
 }
 
-void spFreePolyConvex(sp_convex_polygon* poly){
+void spiceFreePolyConvex(sp_convex_polygon* poly){
     if(poly == NULL) return;
     if(poly->points != NULL){
         free(poly->points);
@@ -22,7 +22,7 @@ void spFreePolyConvex(sp_convex_polygon* poly){
     free(poly);
 }
 
-void spPolyAddPoint(sp_convex_polygon* polygon, sp_vec2 point){
+void spicePolyAddPoint(sp_convex_polygon* polygon, sp_vec2 point){
     if(polygon->points){
         polygon->points = realloc(polygon->points, sizeof(sp_vec2) * polygon->point_count + 1);
     } else {
@@ -34,7 +34,7 @@ void spPolyAddPoint(sp_convex_polygon* polygon, sp_vec2 point){
 
 // Based on the function from OLC's video on SAT.
 // if it ain't broke...
-int spPolyCollideSAT(sp_convex_polygon* a, sp_convex_polygon* b){
+int spicePolyCollideSAT(sp_convex_polygon* a, sp_convex_polygon* b){
     for (size_t ply = 0; ply < 2; ply++){
         if(ply == 1){
             sp_convex_polygon* t = a;

@@ -9,12 +9,12 @@ typedef struct POLY_CONVEX_S {
     uint8_t colliding;
 } sp_convex_polygon;
 
-int spPolyCollideSAT(sp_convex_polygon* a, sp_convex_polygon* b);
+int spicePolyCollideSAT(sp_convex_polygon* a, sp_convex_polygon* b);
 
-sp_convex_polygon* spNewPolyConvex(size_t point_count);
-sp_convex_polygon* spInitPolyConvex(size_t point_count, const sp_vec2* points);
-void spFreePolyConvex(sp_convex_polygon* poly);
+sp_convex_polygon* spiceNewPolyConvex(size_t point_count);
+sp_convex_polygon* spiceInitPolyConvex(size_t point_count, const sp_vec2* points);
+void spiceFreePolyConvex(sp_convex_polygon* poly);
 
-void spPolyAddPoint(sp_convex_polygon* polygon, sp_vec2 point);
+void spicePolyAddPoint(sp_convex_polygon* polygon, sp_vec2 point);
 
 #endif
