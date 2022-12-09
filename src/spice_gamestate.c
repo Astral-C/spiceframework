@@ -43,6 +43,7 @@ void spiceGamestateUpdate(){
 }
 
 void spiceGamestateRegister(int id, void (*update)(), void (*draw)()){
+    if(SP_GAMESTATE_USER + id >= state_manager.state_count) return;
     state_manager.game_states[SP_GAMESTATE_USER + id] = (sp_gamestate){SP_GAMESTATE_USER, update, draw};
     spice_info("Registered gamestate to %d\n", SP_GAMESTATE_USER + id);
 }
