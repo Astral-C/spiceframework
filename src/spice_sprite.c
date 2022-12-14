@@ -1,5 +1,6 @@
 #include <spice_sprite.h>
 #include <spice_graphics.h>
+#include <spice_util.h>
 
 static sp_sprite_manager sprite_manager = {0};
 
@@ -18,6 +19,7 @@ sp_sprite* spiceLoadSprite(char* path){
     for (size_t i = 0; i < sprite_manager._sprite_count; i++){
         if(sprite_manager.sprites[i]._id == id){ // Sprite already loaded, return it. Or a collision. Oop-
             sprite_manager.sprites[i]._ref_count++;
+            spice_info("Returning Sprite %d, IDs match\n", NULL);
             return &sprite_manager.sprites[i];
         }
         
@@ -27,12 +29,16 @@ sp_sprite* spiceLoadSprite(char* path){
     }
 
     // Out of sprite space
-    if(found_sprite == NULL) return NULL;
+    if(found_sprite == NULL){
+        spice_error("Out of sprite space!\n", NULL);
+        return NULL;
+    }
 
     // Try to load the image...
     GPU_Image* img = GPU_LoadImage(path);
             
     if(img == NULL){
+        spice_error("SDL_gpu Couldn't load image!\n", NULL);
         return NULL; //and I oop- can't load the sprite
     }
 
@@ -47,7 +53,12 @@ sp_sprite* spiceLoadSprite(char* path){
     found_sprite->_ref_count++;
     found_sprite->texture = img;
     found_sprite->_id = id;
-            
+
+    found_sprite->frame_w = img->base_w;
+    found_sprite->frame_h = img->base_h;
+    
+    spice_info("Returning Sprite with addr %p\n", found_sprite);
+
     return found_sprite;
 }
 

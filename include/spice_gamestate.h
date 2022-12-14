@@ -10,6 +10,7 @@ typedef enum {
 
 typedef struct GS_S {
     sp_gamestate_type type;
+    int id;
     void (*update)();
     void (*draw)();
 } sp_gamestate;
@@ -35,6 +36,7 @@ void spiceGamestateInit(int state_count);
 void spiceGamestateRegister(int id, void (*update)(), void (*draw)());
 void spiceGamestateChange(int id, int transition);
 void spiceGamestateUpdate();
+int spiceGamestateGet();
 
 void spiceGamestateSetTransitionTime(uint64_t time);
 void spiceGamestateTransitionUpdate();

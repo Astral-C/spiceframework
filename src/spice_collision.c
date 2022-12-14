@@ -3,6 +3,7 @@
 
 sp_convex_polygon* spiceNewPolyConvex(size_t point_count){
     sp_convex_polygon* poly = malloc(sizeof(sp_convex_polygon));
+    return poly;
 }
 
 sp_convex_polygon* spiceInitPolyConvex(size_t point_count, const sp_vec2* points){

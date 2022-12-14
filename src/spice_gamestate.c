@@ -10,10 +10,10 @@ void spiceGamestateClose(){
 }
 
 void spiceGamestateInit(int state_count){
-    state_manager.state_count = state_count;
+    state_manager.state_count = state_count + 2;
     state_manager.game_states = malloc(sizeof(sp_gamestate)*(state_count + 2));
-    state_manager.game_states[SP_GAMESTATE_NONE] = (sp_gamestate){SP_GAMESTATE_NONE, NULL, NULL};
-    state_manager.game_states[SP_GAMESTATE_TRANSITION] = (sp_gamestate){SP_GAMESTATE_TRANSITION, spiceGamestateTransitionUpdate, NULL};
+    state_manager.game_states[SP_GAMESTATE_NONE] = (sp_gamestate){SP_GAMESTATE_NONE, -1, NULL, NULL};
+    state_manager.game_states[SP_GAMESTATE_TRANSITION] = (sp_gamestate){SP_GAMESTATE_TRANSITION, -1, spiceGamestateTransitionUpdate, NULL};
     state_manager.current = &state_manager.game_states[0];
     state_manager.target = state_manager.current;
     state_manager.previous = state_manager.current;
@@ -22,7 +22,7 @@ void spiceGamestateInit(int state_count){
 }
 
 void spiceGamestateChange(int id, int transition){
-    if(id >= state_manager.state_count) return;
+    if(SP_GAMESTATE_USER + id >= state_manager.state_count) return;
     if(transition == 0){
         state_manager.previous = state_manager.current;
         state_manager.current = &state_manager.game_states[SP_GAMESTATE_USER + id];
@@ -42,10 +42,14 @@ void spiceGamestateUpdate(){
     }
 }
 
+int spiceGamestateGet(){
+    return state_manager.current->id;
+}
+
 void spiceGamestateRegister(int id, void (*update)(), void (*draw)()){
     if(SP_GAMESTATE_USER + id >= state_manager.state_count) return;
-    state_manager.game_states[SP_GAMESTATE_USER + id] = (sp_gamestate){SP_GAMESTATE_USER, update, draw};
-    spice_info("Registered gamestate to %d\n", SP_GAMESTATE_USER + id);
+    state_manager.game_states[SP_GAMESTATE_USER + id] = (sp_gamestate){SP_GAMESTATE_USER, id, update, draw};
+    spice_info("Registered gamestate to %d with id %d\n", SP_GAMESTATE_USER + id, id);
 }
 
 void spiceGamestateSetTransitionTime(uint64_t time){
