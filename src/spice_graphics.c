@@ -60,7 +60,3 @@ void spiceGraphicsStep(){
     }
 
 }
-
-void spiceGraphicsDrawPolygon(sp_convex_polygon* polygon, SDL_Color color){
-    GPU_Polygon(graphics.window_target, polygon->point_count, (float*)polygon->points, color);
-}

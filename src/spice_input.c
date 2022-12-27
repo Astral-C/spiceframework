@@ -1,5 +1,7 @@
 #include <spice_input.h>
 
+#ifdef SPICE_INPUT_ENABLED
+
 static const uint8_t* key_states = NULL;
 
 static spice_input_manager cmd_handler = {0};
@@ -80,3 +82,5 @@ void spiceInputUpdate(){
 uint8_t spiceSInputState(SDL_Scancode key){ //simple input  checker
     return key_states[key];
 }
+
+#endif

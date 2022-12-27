@@ -34,11 +34,12 @@ void spHashmapFree(sp_hashmap* map){
 sp_status spHashmapAdd(sp_hashmap* map, char* key, void* data){
     uint64_t bucket_idx = spHash(key, strlen(key)) & (map->_bucket_count - 1);
     
-    printf("Bucket index is %d/%d\n", bucket_idx, map->_bucket_count);
+    spice_debug("Bucket index is %d/%d\n", bucket_idx, map->_bucket_count);
     sp_hashmap_bucket* bucket = &map->buckets[bucket_idx];
 
-    for (size_t item = 0; item < bucket->size; item++){
-        printf("Checking for empty on key \"%s\"\n", bucket->items[item].key);
+    size_t item;
+    for (item = 0; item < bucket->size; item++){
+        spice_debug("Checking for empty on key \"%s\"\n", bucket->items[item].key);
         if(sp_strcmp(bucket->items[item].key, "")){
             sp_strcpy(bucket->items[item].key, key);
             bucket->items[item].data = data;
@@ -46,6 +47,11 @@ sp_status spHashmapAdd(sp_hashmap* map, char* key, void* data){
         }
     }
     
+    if(item == bucket->size){
+        spice_error("No more space in hashmap for new item %s", key);
+        return SP_FAIL;
+    }
+
     return SP_SUCCESS;
 }
 
@@ -78,4 +84,4 @@ void* spHashmapGet(sp_hashmap* map, sp_str key){
     }
 
     return NULL;
-}
+} 

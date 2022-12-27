@@ -6,8 +6,9 @@
 #include <stdio.h>
 
 typedef enum {
-    SP_ERROR,
-    SP_SUCCESS
+    SP_ERROR = -1,
+    SP_SUCCESS = 1,
+    SP_FAIL = 0
 } sp_status;
 
 #ifdef __WIN32
@@ -19,7 +20,13 @@ typedef enum {
 #endif
 
 #define spice_error(msg, ...) fprintf(stderr, "[ERROR %s:L%d]: ", __FILENAME__, __LINE__); fprintf(stderr, msg, __VA_ARGS__);
-#define spice_info(msg, ...) fprintf(stderr, "[INFO %s:L%d]: ", __FILENAME__, __LINE__); fprintf(stderr, msg, __VA_ARGS__);
+#define spice_info(msg, ...) fprintf(stdout, "[INFO %s:L%d]: ", __FILENAME__, __LINE__); fprintf(stdout, msg, __VA_ARGS__);
+
+#ifdef SPICE_DEBUG_PRINT
+#define spice_debug(msg, ...) fprintf(stdout, "[DEBUG %s:L%d]: ", __FILENAME__, __LINE__); fprintf(stdout, msg, __VA_ARGS__);
+#else
+#define spice_debug(msg, ...) do {} while(0);
+#endif
 
 #define SPICE_KEYMAX 32
 #define SPICE_STRMAX 512

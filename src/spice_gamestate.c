@@ -1,6 +1,8 @@
 #include <spice_util.h>
 #include <spice_gamestate.h>
 
+#ifdef SPICE_GAMESTATE_ENABLED
+
 static sp_gamestate_manager state_manager = {0};
 
 void spiceGamestateClose(){
@@ -73,3 +75,5 @@ void spiceGamestateSetTransitionSpeed(uint64_t speed){
 void spiceGamestateSetTransitionFunc(void (*user_transition_func)(uint64_t cur_time, uint64_t total_time, sp_gamestate* previous, sp_gamestate* next)){
     state_manager.transition_func = user_transition_func;
 }
+
+#endif

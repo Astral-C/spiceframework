@@ -2,14 +2,11 @@
 #define __SPICE_COLLISION_H__
 #include <spice_util.h>
 #include <spice_math.h>
+#include <spice_shape.h>
 
-typedef struct POLY_CONVEX_S {
-    size_t point_count;
-    sp_vec2* points;
-    uint8_t colliding;
-} sp_convex_polygon;
-
-int spicePolyCollideSAT(sp_convex_polygon* a, sp_convex_polygon* b);
+sp_status spicePolyCollideSAT(sp_convex_polygon* a, sp_convex_polygon* b);
+sp_status spicePolyRectCollide(sp_convex_polygon* a, sp_rect* b);
+sp_status spiceAABBCollide(sp_rect* r1, sp_rect* r2);
 
 sp_convex_polygon* spiceNewPolyConvex(size_t point_count);
 sp_convex_polygon* spiceInitPolyConvex(size_t point_count, const sp_vec2* points);

@@ -1,5 +1,5 @@
-#ifndef __INPUT_H__
-#define __INPUT_H__
+#ifndef __SPICE_INPUT_H__
+#define __SPICE_INPUT_H__
 #include <SDL2/SDL.h>
 #include <spice_util.h>
 

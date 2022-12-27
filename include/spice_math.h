@@ -11,8 +11,13 @@
 #define lerpv2(d, a, b, t) d.x = lerpf(a.x, b.x, t); d.y = lerpf(a.x, b.y, t);
 #define lerpv3(d, a, b, t) d.x = lerpf(a.x, b.x, t); d.y = lerpf(a.x, b.y, t); d.z = lerpf(a.z, b.z, t);
 
-typedef struct {
-    float x, y;
+typedef union {
+    struct {
+        float x, y;
+    };
+    struct {
+        float w, h;
+    };
 } sp_vec2;
 
 typedef struct {

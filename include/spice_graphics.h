@@ -28,6 +28,4 @@ void spiceGraphicsSetCamera(float x, float y, float zoom, float angle);
 
 void spiceGraphicsScreenMod(sp_vec4 color);
 
-void spiceGraphicsDrawPolygon(sp_convex_polygon* polygon, SDL_Color color);
-
 #endif
