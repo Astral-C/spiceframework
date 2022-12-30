@@ -9,15 +9,15 @@ typedef enum {
 } sp_clip_type;
 
 typedef struct {
-    int _id, _in_use;
+    int _in_use;
     sp_clip_type type;
     uint8_t playing;
     SDL_AudioSpec source_spec;
 
     int sample_offset;
-    uint32_t length;
+    int length;
     int pitch;
-
+    float volume;
 
     void* data;
 } sp_clip;
@@ -37,7 +37,7 @@ typedef struct {
 
 
 void spiceMixerInit(int clip_max);
-void spiceMixerLoadWav(char* path);
+sp_clip* spiceMixerLoadWav(char* path);
 void spiceMixerPause(int pause);
 
 #endif

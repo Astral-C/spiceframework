@@ -10,16 +10,16 @@ void spiceMixClip(sp_clip* clip, int16_t *stream, int len){
     {
     case AUDIO_F32:
         for (size_t i = 0; i < len; i+=2){
-            stream[i] += (int16_t)((((float*)clip->data)[clip->sample_offset % clip->length] * INT16_MAX) * mixer.volume);
-            stream[i+1] += (int16_t)((((float*)clip->data)[clip->sample_offset+1 % clip->length] * INT16_MAX) * mixer.volume);
+            stream[i] += (int16_t)((((float*)clip->data)[clip->sample_offset % clip->length] * INT16_MAX) * clip->volume * mixer.volume);
+            stream[i+1] += (int16_t)((((float*)clip->data)[clip->sample_offset+1 % clip->length] * INT16_MAX) * clip->volume * mixer.volume);
             clip->sample_offset += (clip->source_spec.freq / mixer._target_spec.freq) * clip->pitch;
         }
         break;
     case AUDIO_S16:
         for (size_t i = 0; i < len; i+=2){
-            stream[i] += (int16_t)(((int16_t*)clip->data)[clip->sample_offset % clip->length] * mixer.volume);
-            stream[i+1] += (int16_t)(((int16_t*)clip->data)[clip->sample_offset+1 % clip->length] * mixer.volume);
-            clip->sample_offset += (clip->source_spec.freq / mixer._target_spec.freq);
+            stream[i] += (int16_t)(((int16_t*)clip->data)[clip->sample_offset % clip->length] * clip->volume * mixer.volume);
+            stream[i+1] += (int16_t)(((int16_t*)clip->data)[clip->sample_offset+1 % clip->length] * clip->volume * mixer.volume);
+            clip->sample_offset += (clip->source_spec.freq / mixer._target_spec.freq) * clip->pitch;
         }
         break;        
     default:
@@ -32,10 +32,11 @@ void spiceMixClip(sp_clip* clip, int16_t *stream, int len){
 }
 
 void spiceMixerMix(void *userdata, uint8_t *stream, int len){
+    memset(stream,0,len);
     if(mixer.ready == 1){
         //Mix Clips here
         for(sp_clip* clip = mixer.clips; clip < mixer.clips + mixer.max_clips; clip++){
-            if(clip->_in_use){
+            if(clip->_in_use && clip->playing){
                 spiceMixClip(clip, (int16_t*)stream, (uint32_t)(len/2));
             }
         }
@@ -79,7 +80,7 @@ void spiceMixerInit(int clip_max){
 }
 
 
-void spiceMixerLoadWav(char* path){
+sp_clip* spiceMixerLoadWav(char* path){
     for(sp_clip* clip = mixer.clips; clip < mixer.clips + mixer.max_clips; clip++){
         if(!clip->_in_use){
             SDL_AudioSpec* spec = SDL_LoadWAV(path, &clip->source_spec, (Uint8**)(&clip->data), &clip->length);
@@ -89,9 +90,9 @@ void spiceMixerLoadWav(char* path){
             }
             spice_info("Loaded WAV %s with freq %d\n", path, clip->source_spec.freq);
             clip->_in_use = 1;
-            clip->pitch = 2;
+            clip->pitch = 2; //default pitch to 1
             clip->type = CLIP_TYPE_WAV;
-            break;
+            return clip;
         }
     }
 }
