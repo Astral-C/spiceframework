@@ -8,6 +8,7 @@ typedef struct {
     SDL_Window* window;
     GPU_Target* window_target;
     GPU_Camera camera;
+    SDL_Color clear_color;
 
     uint32_t target_fps, ticks_per_frame;
     uint64_t cur_time, prev_time;
@@ -17,6 +18,8 @@ typedef struct {
 void spiceGraphicsInit(int width, int height, int target_fps, int window_flags);
 
 GPU_Target* spiceGraphicsWindowTarget();
+
+void spiceGraphicsSetClearColor(sp_vec4 color);
 
 void spiceGraphicsClose();
 

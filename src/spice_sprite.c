@@ -56,7 +56,7 @@ sp_sprite* spiceLoadSprite(char* path){
 
     found_sprite->frame_w = img->base_w;
     found_sprite->frame_h = img->base_h;
-    
+    found_sprite->parallax_factor = (sp_vec2){1,1};
     spice_info("Returning Sprite with addr %p\n", found_sprite);
 
     return found_sprite;
@@ -70,7 +70,8 @@ void spiceFreeSprite(sp_sprite* sprite){
 void spiceDrawSprite(sp_sprite* sprite, float x, float y, float rotation, uint32_t row, float frame){
     if(sprite == NULL) return;
     GPU_Rect src = (GPU_Rect){((uint32_t)frame) * sprite->frame_w, row * sprite->frame_h, sprite->frame_w, sprite->frame_h};
-    GPU_BlitTransform(sprite->texture, &src, sprite_manager._window_target, x, y, rotation, 1, 1);
+    GPU_BlitTransform(sprite->texture, &src, sprite_manager._window_target, x * sprite->parallax_factor.x, y * sprite->parallax_factor.y, rotation, 1, 1);
+
 }
 
 void spiceSpriteClose(){

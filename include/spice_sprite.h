@@ -3,18 +3,21 @@
 #include <SDL2/SDL.h>
 #include <SDL_gpu.h>
 #include <spice_util.h>
+#include <spice_math.h>
 
 typedef struct {
     uint64_t _id;
     uint32_t _ref_count;
     GPU_Image* texture;
     uint16_t frame_w, frame_h;
+    sp_vec2 parallax_factor;
 } sp_sprite;
 
 typedef struct {
     uint32_t _next_free;
     uint32_t _sprite_count;
     GPU_Target* _window_target;
+    GPU_Camera* camera;
 
     sp_sprite* sprites;
 } sp_sprite_manager;

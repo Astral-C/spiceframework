@@ -13,6 +13,8 @@ void spiceGraphicsInit(int width, int height, int target_fps, int window_flags){
     graphics.ticks_per_frame = 1000 / target_fps;
     graphics.cur_time = SDL_GetTicks64();
 
+    graphics.clear_color = (SDL_Color){35, 35, 35, SDL_ALPHA_OPAQUE};
+
     graphics.camera = GPU_GetDefaultCamera();
 
     atexit(spiceGraphicsClose);
@@ -28,11 +30,15 @@ void spiceGraphicsClose(){
     SDL_Quit();
 }
 
+void spiceGraphicsSetClearColor(sp_vec4 color){
+    graphics.clear_color = (SDL_Color){(Uint8)color.r, (Uint8)color.g, (Uint8)color.b, (Uint8)color.a};
+}
+
 void spiceGraphicsDraw(){
     GPU_SetCamera(graphics.window_target, &graphics.camera);
 
     GPU_Flip(graphics.window_target);
-    GPU_ClearColor(graphics.window_target, (SDL_Color){35, 35, 35, SDL_ALPHA_OPAQUE});
+    GPU_ClearColor(graphics.window_target, graphics.clear_color);
 }
 
 void spiceGraphicsSetCamera(float x, float y, float zoom, float angle){
