@@ -10,15 +10,15 @@ void spiceMixClip(sp_clip* clip, int16_t *stream, int len){
     {
     case AUDIO_F32:
         for (size_t i = 0; i < len; i+=2){
-            stream[i] += (int16_t)((((float*)clip->data)[clip->sample_offset % clip->length] * INT16_MAX) * clip->volume * mixer.volume);
-            stream[i+1] += (int16_t)((((float*)clip->data)[clip->sample_offset+1 % clip->length] * INT16_MAX) * clip->volume * mixer.volume);
+            stream[i] += (int16_t)((((float*)clip->data)[clip->sample_offset] * INT16_MAX) * clip->volume * mixer.volume);
+            stream[i+1] += (int16_t)((((float*)clip->data)[clip->sample_offset+1] * INT16_MAX) * clip->volume * mixer.volume);
             clip->sample_offset += (clip->source_spec.freq / mixer._target_spec.freq) * clip->pitch;
         }
         break;
     case AUDIO_S16:
         for (size_t i = 0; i < len; i+=2){
-            stream[i] += (int16_t)(((int16_t*)clip->data)[clip->sample_offset % clip->length] * clip->volume * mixer.volume);
-            stream[i+1] += (int16_t)(((int16_t*)clip->data)[clip->sample_offset+1 % clip->length] * clip->volume * mixer.volume);
+            stream[i] += (int16_t)(((int16_t*)clip->data)[clip->sample_offset] * clip->volume * mixer.volume);
+            stream[i+1] += (int16_t)(((int16_t*)clip->data)[clip->sample_offset+1] * clip->volume * mixer.volume);
             clip->sample_offset += (clip->source_spec.freq / mixer._target_spec.freq) * clip->pitch;
         }
         break;        
@@ -29,7 +29,13 @@ void spiceMixClip(sp_clip* clip, int16_t *stream, int len){
         spice_error("Unknown sample format! Format is %u\n", clip->source_spec.format);
         break;
     }
+
+    if(clip->sample_offset > clip->length){
+        clip->playing = clip->loop;
+        clip->sample_offset = 0;
+    }
 }
+
 
 void spiceMixerMix(void *userdata, uint8_t *stream, int len){
     memset(stream,0,len);

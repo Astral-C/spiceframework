@@ -12,16 +12,16 @@ typedef struct {
     uint32_t state;
     SDL_KeyCode key;
     sp_key command_name;
-} spice_input;
+} sp_input;
 
 typedef struct {
     uint32_t command_count;
-    spice_input* commands;
+    sp_input* commands;
 } spice_input_manager;
 
 void spiceInputInit(char* input_file_path);
 void spiceInputUpdate();
-spice_input* spiceInputGetCmd(char* name);
+sp_input* spiceInputGetCmd(char* name);
 
 // Get Simple Input State of key
 uint8_t spiceSInputState(SDL_Scancode key);

@@ -22,8 +22,8 @@ void spiceInputInit(char* input_file_path){
         if(getc(input_cfg) == '\n') cmd_handler.command_count++;
     }   
 
-    cmd_handler.commands = malloc(sizeof(spice_input) * cmd_handler.command_count);
-    memset(cmd_handler.commands, 0, sizeof(spice_input) * cmd_handler.command_count);
+    cmd_handler.commands = malloc(sizeof(sp_input) * cmd_handler.command_count);
+    memset(cmd_handler.commands, 0, sizeof(sp_input) * cmd_handler.command_count);
 
     rewind(input_cfg);
 
@@ -50,8 +50,8 @@ void spiceInputInit(char* input_file_path){
     atexit(spiceInputClose);
 }
 
-spice_input* spiceInputGetCmd(char* name){
-    for (spice_input* input = cmd_handler.commands; input != cmd_handler.commands + cmd_handler.command_count; input++){
+sp_input* spiceInputGetCmd(char* name){
+    for (sp_input* input = cmd_handler.commands; input != cmd_handler.commands + cmd_handler.command_count; input++){
         if(sp_keycmp(name, input->command_name)){
             return input;
         }
@@ -61,7 +61,7 @@ spice_input* spiceInputGetCmd(char* name){
 void spiceInputUpdate(){
     key_states = SDL_GetKeyboardState(NULL);
 
-    for (spice_input* input = cmd_handler.commands; input != cmd_handler.commands + cmd_handler.command_count; input++){
+    for (sp_input* input = cmd_handler.commands; input != cmd_handler.commands + cmd_handler.command_count; input++){
         if(key_states[input->key]){
             if(input->state == SP_INPUT_PRESSED) {
                 input->state = SP_INPUT_HELD;

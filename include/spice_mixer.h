@@ -18,6 +18,7 @@ typedef struct {
     int length;
     int pitch;
     float volume;
+    int loop;
 
     void* data;
 } sp_clip;
