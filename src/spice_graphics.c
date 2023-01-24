@@ -10,7 +10,7 @@ void spiceGraphicsInit(int width, int height, int target_fps, int window_flags){
     }
 
     GPU_SetRequiredFeatures(GPU_FEATURE_BASIC_SHADERS);
-    graphics.window_target = GPU_InitRenderer(GPU_RENDERER_OPENGL_4, width, height, window_flags);
+    graphics.window_target = GPU_InitRenderer(GPU_RENDERER_OPENGL_3, width, height, window_flags);
 
     graphics.target_fps = target_fps;
     graphics.ticks_per_frame = 1000 / target_fps;

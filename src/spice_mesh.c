@@ -3,7 +3,7 @@
 
 static spice_mesh_manager mesh_manager = {0};
 
-const char* default_vtx_shader_source = "\
+char* default_vtx_shader_source = "\
     #version 450\
     #extension GL_ARB_separate_shader_objects : enable\
     \
@@ -41,7 +41,7 @@ const char* default_vtx_shader_source = "\
  */
 
 
-const char* default_frg_shader_source = "\
+char* default_frg_shader_source = "\
     #version 450\
     #extension GL_ARB_separate_shader_objects : enable\
     \
@@ -55,7 +55,7 @@ const char* default_frg_shader_source = "\
     void main()\
     {\
         vec4 baseColor = texture(texSampler, fragTexCoord);\
-        outColor = fragColori * baseColor;\
+        outColor = vec4(1.0, 1.0, 1.0, 1.0);\
     }\
 ";
 
@@ -86,11 +86,11 @@ void spiceMeshManagerInit(uint32_t mesh_max){
     mesh_manager.meshes = malloc(sizeof(sp_mesh) * mesh_max);
     memset(mesh_manager.meshes, 0, sizeof(sp_mesh) * mesh_max);
     mesh_manager.mesh_max = mesh_max;
+    
 
-    //set up default shader
-
-    GLuint vs = GPU_LoadShader(GPU_VERTEX_SHADER, "assets/vtx.glsl");//default_vtx_shader_source);
+    GLuint vs = GPU_LoadShader(GPU_VERTEX_SHADER, "assets/vtx.glsl");
     GLuint fs = GPU_LoadShader(GPU_FRAGMENT_SHADER, "assets/frg.glsl");
+    
     mesh_manager._default_shader = GPU_LinkShaders(vs, fs);
     mesh_manager._mvp_loc = GPU_GetUniformLocation(mesh_manager._default_shader, "gpu_ModelViewProjectionMatrix");
 
@@ -118,9 +118,12 @@ sp_mesh* spiceMeshNewDynamic(uint32_t max_vertices){
     memset(new_mesh->vertices, 0, max_vertices);
 
     glGenVertexArrays(1, &new_mesh->_vao_id);
-    glBindVertexArray(new_mesh->_vao_id);
     glGenBuffers(1, &new_mesh->_vbo_id);
 
+    glBindVertexArray(new_mesh->_vao_id);
+
+    glBindBuffer(GL_ARRAY_BUFFER, new_mesh->_vbo_id);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(sp_vertex) * max_vertices, new_mesh->vertices, GL_DYNAMIC_DRAW);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(sp_vertex), 0);
     glEnableVertexAttribArray(0);
@@ -133,9 +136,6 @@ sp_mesh* spiceMeshNewDynamic(uint32_t max_vertices){
 
     glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(sp_vertex), (void*)offsetof(sp_vertex, color));
     glEnableVertexAttribArray(3);
-
-    glBindBuffer(GL_ARRAY_BUFFER, new_mesh->_vbo_id);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(sp_vertex) * max_vertices, new_mesh->vertices, GL_DYNAMIC_DRAW);
 
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
