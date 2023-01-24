@@ -50,6 +50,7 @@ void spiceMeshManagerCleanup(){
         if(mesh->_in_use){
             glDeleteVertexArrays(1, &mesh->_vao_id);
             glDeleteBuffers(1, &mesh->_vbo_id);
+            free(mesh->vertices);
         } 
     }
 
@@ -160,6 +161,107 @@ sp_mesh* spiceMeshNewDynamic(uint32_t max_vertices){
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
+
+    return new_mesh;
+}
+
+sp_mesh* spiceMeshLoadCinnamodel(sp_str model_path){
+    sp_mesh* new_mesh = NULL;
+    for (sp_mesh* mesh = mesh_manager.meshes; mesh < mesh_manager.meshes + mesh_manager.mesh_max; mesh++){
+        if(!mesh->_in_use){
+            mesh->_in_use = 1;
+            mesh->_dynamic = 1;
+            new_mesh = mesh;
+            break;
+        } 
+    }
+
+    if(new_mesh == NULL){
+        spice_error("No meshes available!", NULL);
+        return NULL;
+    }
+    
+
+    // Model Loader
+    FILE* model = fopen(model_path, "rb");
+
+    fread(&new_mesh->vertex_count, sizeof(uint32_t), 1, model);
+    new_mesh->vertices = malloc(sizeof(sp_vertex) * new_mesh->vertex_count);
+
+    /*
+    
+        Format spec:
+        
+        - Header -
+        int vtx_count
+
+        int pos_count
+        int pos_off
+
+        int norm_count
+        int norm_off
+
+        int texcoord_count
+        int texcoord_off
+
+        int color_count
+        int color_off
+    
+        int texture_off
+        int primitive_offset
+        int object_offset
+
+        - Texture Segment - 
+        int count
+        texture_header[count] texture
+        void* texdata
+
+        - Texture Header -
+        int tex_start
+        int tex_end
+
+        - Primitive Segment - 
+        int count
+        primitive_header[count] primitive
+        void* primitivedata
+
+        - Primitive Header -
+        int primitive_type // enum, strip or trilist
+        int primitive_start_offset
+        int vtx_count
+        int attribute_indices[4]
+
+        - Object Header -
+        int object_count
+        object_mesh meshes
+
+        - Object Mesh -
+        int primitive_idx
+        int texture_idx
+    */
+    
+
+    glGenVertexArrays(1, &new_mesh->_vao_id);
+    glBindVertexArray(new_mesh->_vao_id);
+ 
+    glGenBuffers(1, &new_mesh->_vbo_id);
+    glBindBuffer(GL_ARRAY_BUFFER, new_mesh->_vbo_id);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(sp_vertex) * new_mesh->vertex_count, new_mesh->vertices, GL_STATIC_DRAW);
+
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(sp_vertex), 0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(sp_vertex), (void*)offsetof(sp_vertex, normal));
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(sp_vertex), (void*)offsetof(sp_vertex, texcoord));
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(sp_vertex), (void*)offsetof(sp_vertex, color));
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    fclose(model);
 
     return new_mesh;
 }
