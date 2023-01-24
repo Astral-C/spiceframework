@@ -44,6 +44,13 @@ typedef char sp_key[SPICE_KEYMAX];
 #define FNV_PRIME 0x100000001b3
 #define FNV_OFFSET_BASIS 0xcbf29ce484222325
 
+/////////////////////////////////////////
+/// Allocation Functions 
+/////////////////////////////////////////
+
+//void* (*spiceAllocMem)(size_t sz);
+//void* (*spiceFreeMem)(size_t sz);
+
 uint64_t spHash(char* data, size_t size);
 
 /////////////////////////////////////////

@@ -27,6 +27,10 @@ void spiceGraphicsDraw();
 
 void spiceGraphicsStep();
 
+void spiceGraphicsSetFullscreen(uint8_t fullscreen, uint8_t update_resolution);
+
+void spiceGraphicsSetResolution(int width, int height);
+
 void spiceGraphicsSetCamera(float x, float y, float zoom, float angle);
 
 void spiceGraphicsScreenMod(sp_vec4 color);

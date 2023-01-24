@@ -1,13 +1,16 @@
 #include <spice_graphics.h>
+#include <glew.h>
 
 static spice_graphics graphics = {0};
 
 void spiceGraphicsInit(int width, int height, int target_fps, int window_flags){
+    glewExperimental = GL_TRUE;
     if(SDL_Init(SDL_INIT_EVERYTHING) < 0){
         return; //fail
     }
 
-    graphics.window_target = GPU_Init(width, height, window_flags);
+    GPU_SetRequiredFeatures(GPU_FEATURE_BASIC_SHADERS);
+    graphics.window_target = GPU_InitRenderer(GPU_RENDERER_OPENGL_4, width, height, window_flags);
 
     graphics.target_fps = target_fps;
     graphics.ticks_per_frame = 1000 / target_fps;
@@ -47,6 +50,14 @@ void spiceGraphicsSetCamera(float x, float y, float zoom, float angle){
     graphics.camera.zoom_x = zoom;
     graphics.camera.zoom_y = zoom;
     graphics.camera.angle = angle;
+}
+
+void spiceGraphicsSetFullscreen(uint8_t fullscreen, uint8_t update_resolution){
+    GPU_SetFullscreen(fullscreen, update_resolution);
+}
+
+void spiceGraphicsSetResolution(int width, int height){
+    GPU_SetWindowResolution(width, height);
 }
 
 void spiceGraphicsScreenMod(sp_vec4 color){
