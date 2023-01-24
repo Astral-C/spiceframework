@@ -3,71 +3,47 @@
 
 static spice_mesh_manager mesh_manager = {0};
 
-char* default_vtx_shader_source = "\
-    #version 450\
-    #extension GL_ARB_separate_shader_objects : enable\
+static char glErrorLogBuffer[4096];
+
+const char* default_vtx_shader_source = "#version 330\n\
+    #extension GL_ARB_separate_shader_objects : enable\n\
     \
-    uniform mat4 gpu_ModelViewProjectionMatrix;\
+    uniform mat4 gpu_ModelViewProjectionMatrix;\n\
     \
-    layout(location = 0) in vec3 inPosition;\
-    layout(location = 1) in vec3 inNormal;\
-    layout(location = 2) in vec2 inTexCoord;\
-    layout(location = 3) in vec4 inColor;\
+    layout(location = 0) in vec3 inPosition;\n\
+    layout(location = 1) in vec3 inNormal;\n\
+    layout(location = 2) in vec2 inTexCoord;\n\
+    layout(location = 3) in vec4 inColor;\n\
     \
-    layout(location = 0) out vec3 fragNormal;\
-    layout(location = 1) out vec2 fragTexCoord;\
-    layout(location = 2) out vec4 fragColori;\
+    layout(location = 0) out vec3 fragNormal;\n\
+    layout(location = 1) out vec2 fragTexCoord;\n\
+    layout(location = 2) out vec4 fragColori;\n\
     \
-    void main()\
+    void main()\n\
     {\
-        fragNormal = normalize(inNormal.xyz);\
-        gl_Position = gpu_ModelViewProjectionMatrix * vec4(inPosition, 1.0);\
-        fragColori = inColor;\
+        gl_Position = gpu_ModelViewProjectionMatrix * vec4(inPosition, 1.0);\n\
+        fragNormal = normalize(inNormal.xyz);\n\
+        fragColori = inColor;\n\
+        fragTexCoord = inTexCoord;\n\
     }\
 ";
 
-/*    
-    #version 120\
-    attribute vec3 gpu_Vertex;\
-    attribute vec4 gpu_Color;\
-    uniform mat4 gpu_ModelViewProjectionMatrix;\
-    varying vec4 color;\
-    void main(void)\
-    {\
-        color = gpu_Color;\
-        gl_Position = gpu_ModelViewProjectionMatrix * vec4(gpu_Vertex, 1.0);\
+const char* default_frg_shader_source = "#version 330\n\
+    #extension GL_ARB_separate_shader_objects : enable\n\
+    \
+    uniform sampler2D texSampler;\n\
+    layout(location = 0) in vec3 fragNormal;\n\
+    layout(location = 1) in vec2 fragTexCoord;\n\
+    layout(location = 2) in vec4 fragColori;\n\
+    \n\
+    layout(location = 0) out vec4 outColor;\n\
+    \
+    void main()\n\
+    {\n\
+        vec4 baseColor = texture(texSampler, fragTexCoord);\n\
+        outColor = baseColor;//vec4(1.0, 1.0, 1.0, 1.0);\n\
     }\
 ";
- */
-
-
-char* default_frg_shader_source = "\
-    #version 450\
-    #extension GL_ARB_separate_shader_objects : enable\
-    \
-    layout(binding = 0) uniform sampler2D texSampler;\
-    layout(location = 0) in vec3 fragNormal;\
-    layout(location = 1) in vec2 fragTexCoord;\
-    layout(location = 2) in vec4 fragColori;\
-    \
-    layout(location = 0) out vec4 outColor;\
-    \
-    void main()\
-    {\
-        vec4 baseColor = texture(texSampler, fragTexCoord);\
-        outColor = vec4(1.0, 1.0, 1.0, 1.0);\
-    }\
-";
-
-/*
-    #version 120\
-    varying vec4 color;\
-    void main(void)\
-    {\
-        gl_FragColor = color;\
-    }\
-";
-*/
 
 void spiceMeshManagerCleanup(){
     for (sp_mesh* mesh = mesh_manager.meshes; mesh < mesh_manager.meshes + mesh_manager.mesh_max; mesh++){
@@ -79,7 +55,7 @@ void spiceMeshManagerCleanup(){
 
     if(mesh_manager.meshes != NULL) free(mesh_manager.meshes);
 
-    GPU_FreeShader(mesh_manager._default_shader);
+    glDeleteProgram(mesh_manager._default_shader);
 }
 
 void spiceMeshManagerInit(uint32_t mesh_max){
@@ -88,10 +64,58 @@ void spiceMeshManagerInit(uint32_t mesh_max){
     mesh_manager.mesh_max = mesh_max;
     
 
-    GLuint vs = GPU_LoadShader(GPU_VERTEX_SHADER, "assets/vtx.glsl");
-    GLuint fs = GPU_LoadShader(GPU_FRAGMENT_SHADER, "assets/frg.glsl");
+    GLuint vs = glCreateShader(GL_VERTEX_SHADER);
+    GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
+
+    glShaderSource(vs, 1, (const char**)&default_vtx_shader_source, NULL);
+    glShaderSource(fs, 1, (const char**)&default_frg_shader_source, NULL);
     
-    mesh_manager._default_shader = GPU_LinkShaders(vs, fs);
+    glCompileShader(vs);
+
+    GLint status;
+    glGetShaderiv(vs, GL_COMPILE_STATUS, &status);
+    if(status == GL_FALSE){
+        GLint infoLogLength;
+        glGetShaderiv(vs, GL_INFO_LOG_LENGTH, &infoLogLength);
+        
+        glGetShaderInfoLog(vs, infoLogLength, NULL, glErrorLogBuffer);
+        
+        spice_error("Compile failure in vertex shader:\n%s\n", glErrorLogBuffer);
+    }
+
+    glCompileShader(fs);
+
+    glGetShaderiv(fs, GL_COMPILE_STATUS, &status);
+    if(status == GL_FALSE){
+        GLint infoLogLength;
+        glGetShaderiv(fs, GL_INFO_LOG_LENGTH, &infoLogLength);
+        
+        glGetShaderInfoLog(fs, infoLogLength, NULL, glErrorLogBuffer);
+        
+        spice_error("Compile failure in fragment shader:\n%s\n", glErrorLogBuffer);
+    }
+
+    mesh_manager._default_shader = glCreateProgram();
+    
+    glAttachShader(mesh_manager._default_shader, vs);
+    glAttachShader(mesh_manager._default_shader, fs);
+
+    glLinkProgram(mesh_manager._default_shader);
+ 
+    glGetProgramiv(mesh_manager._default_shader, GL_LINK_STATUS, &status); 
+    if(GL_FALSE == status) {
+        GLint logLen; 
+        glGetProgramiv(mesh_manager._default_shader, GL_INFO_LOG_LENGTH, &logLen); 
+        glGetProgramInfoLog(mesh_manager._default_shader, logLen, NULL, glErrorLogBuffer); 
+        spice_error("Shader Program Linking Error:\n%s\n", glErrorLogBuffer);
+    } 
+
+    glDetachShader(mesh_manager._default_shader, vs);
+    glDetachShader(mesh_manager._default_shader, fs);
+
+    glDeleteShader(vs);
+    glDeleteShader(fs);
+
     mesh_manager._mvp_loc = GPU_GetUniformLocation(mesh_manager._default_shader, "gpu_ModelViewProjectionMatrix");
 
     atexit(spiceMeshManagerCleanup);
@@ -118,27 +142,24 @@ sp_mesh* spiceMeshNewDynamic(uint32_t max_vertices){
     memset(new_mesh->vertices, 0, max_vertices);
 
     glGenVertexArrays(1, &new_mesh->_vao_id);
-    glGenBuffers(1, &new_mesh->_vbo_id);
-
     glBindVertexArray(new_mesh->_vao_id);
-
+ 
+    glGenBuffers(1, &new_mesh->_vbo_id);
     glBindBuffer(GL_ARRAY_BUFFER, new_mesh->_vbo_id);
     glBufferData(GL_ARRAY_BUFFER, sizeof(sp_vertex) * max_vertices, new_mesh->vertices, GL_DYNAMIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(sp_vertex), 0);
+
     glEnableVertexAttribArray(0);
-
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(sp_vertex), (void*)offsetof(sp_vertex, normal));
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(sp_vertex), 0);
     glEnableVertexAttribArray(1);
-
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(sp_vertex), (void*)offsetof(sp_vertex, texcoord));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(sp_vertex), (void*)offsetof(sp_vertex, normal));
     glEnableVertexAttribArray(2);
-
-    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(sp_vertex), (void*)offsetof(sp_vertex, color));
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(sp_vertex), (void*)offsetof(sp_vertex, texcoord));
     glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(sp_vertex), (void*)offsetof(sp_vertex, color));
 
-    glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
 
     return new_mesh;
 }
@@ -165,6 +186,7 @@ void spiceMeshSetVertex(sp_mesh* mesh, sp_vertex vtx, uint32_t idx){
 
 void spiceMeshFree(sp_mesh* mesh){
     mesh->_in_use = 0;
+    glDeleteVertexArrays(1, &mesh->_vao_id);
     glDeleteBuffers(1, &mesh->_vbo_id);
     free(mesh->vertices);
 }
@@ -185,16 +207,26 @@ void spiceMeshManagerDraw(){
     GPU_PushMatrix();
     GPU_LoadIdentity();
 
+    glUseProgram(0);
+    glBindVertexArray(0);
+    
     GPU_GetModelViewProjection(mvp);
 
     glUseProgram(mesh_manager._default_shader);
 
     for (sp_mesh* mesh = mesh_manager.meshes; mesh < mesh_manager.meshes + mesh_manager.mesh_max; mesh++){
         if(!mesh->_in_use) continue;
-        if(mesh->texture != NULL) glBindTexture(GL_TEXTURE_2D, GPU_GetTextureHandle(mesh->texture));
+        if(mesh->texture != NULL){
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, GPU_GetTextureHandle(mesh->texture));
+        }
+        
         glBindVertexArray(mesh->_vao_id);
+
         glUniformMatrix4fv(mesh_manager._mvp_loc, 1, 0, mvp);
         glDrawArrays(GL_TRIANGLES, 0, mesh->vertex_count);
+        
+        glBindVertexArray(0);
     }
     
     GPU_ResetRendererState();
