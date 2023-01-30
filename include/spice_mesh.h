@@ -7,8 +7,8 @@
 typedef struct {
     sp_vec3 position;
     sp_vec3 normal;
-    sp_vec4 color;
     sp_vec2 texcoord;
+    sp_vec4 color;
 } sp_vertex;
 
 typedef struct {
@@ -35,7 +35,7 @@ typedef struct {
 
 void spiceMeshManagerInit(uint32_t mesh_max);
 
-sp_mesh* spiceMeshLoadCinnamodel(sp_str model_path);
+sp_mesh* spiceMeshLoadCinnamodel(char* model_path);
 sp_mesh* spiceMeshNew(uint32_t vertex_count);
 sp_mesh* spiceMeshNewDynamic(uint32_t vertex_count);
 
@@ -45,5 +45,8 @@ void spiceMeshSetVertex(sp_mesh* mesh, sp_vertex vtx, uint32_t idx);
 void spiceMeshFree(sp_mesh* mesh);
 
 void spiceMeshManagerDraw();
+
+extern sp_vec3 cam_position;
+extern sp_vec3 cam_rotation;
 
 #endif

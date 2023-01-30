@@ -3,6 +3,9 @@
 
 static spice_mesh_manager mesh_manager = {0};
 
+sp_vec3 cam_position = {0};
+sp_vec3 cam_rotation = {0};
+
 static char glErrorLogBuffer[4096];
 
 const char* default_vtx_shader_source = "#version 330\n\
@@ -41,7 +44,7 @@ const char* default_frg_shader_source = "#version 330\n\
     void main()\n\
     {\n\
         vec4 baseColor = texture(texSampler, fragTexCoord);\n\
-        outColor = baseColor;//vec4(1.0, 1.0, 1.0, 1.0);\n\
+        outColor = baseColor * fragColori;//vec4(1.0, 1.0, 1.0, 1.0);\n\
     }\
 ";
 
@@ -165,7 +168,7 @@ sp_mesh* spiceMeshNewDynamic(uint32_t max_vertices){
     return new_mesh;
 }
 
-sp_mesh* spiceMeshLoadCinnamodel(sp_str model_path){
+sp_mesh* spiceMeshLoadCinnamodel(char* model_path){
     sp_mesh* new_mesh = NULL;
     for (sp_mesh* mesh = mesh_manager.meshes; mesh < mesh_manager.meshes + mesh_manager.mesh_max; mesh++){
         if(!mesh->_in_use){
@@ -180,66 +183,46 @@ sp_mesh* spiceMeshLoadCinnamodel(sp_str model_path){
         spice_error("No meshes available!", NULL);
         return NULL;
     }
-    
 
     // Model Loader
     FILE* model = fopen(model_path, "rb");
 
-    fread(&new_mesh->vertex_count, sizeof(uint32_t), 1, model);
+    if(model == NULL){
+        spice_error("Couldn't Open Model %s\n", model_path);
+        return NULL;
+    }
+
+    uint32_t mesh_count = 0;
+
+    spice_info("Reading Mesh Count\n", NULL);
+
+    fread(&mesh_count, sizeof(uint32_t), 1, model);
+
+    spice_info("Read Mesh Count %d\nCollecting vertex count...\n", mesh_count);
+
+    for (size_t i = 0; i < mesh_count; i++){
+        uint32_t vtx_count = 0;
+        fread(&vtx_count, sizeof(uint32_t), 1, model);
+        spice_info("Mesh %d has %d vertices\n", i, vtx_count);
+        new_mesh->vertex_count += vtx_count;
+        fseek(model, sizeof(sp_vertex) * vtx_count, SEEK_CUR);
+    }
+
+    rewind(model);
+    spice_info("Allocating vertex buffer\n",NULL);
     new_mesh->vertices = malloc(sizeof(sp_vertex) * new_mesh->vertex_count);
+    spice_info("Finished allocating vertex buffer\n",NULL);
 
-    /*
-    
-        Format spec:
-        
-        - Header -
-        int vtx_count
+    fread(&mesh_count, sizeof(uint32_t), 1, model);
+    uint32_t vtx_offset = 0;
+    for (size_t i = 0; i < mesh_count; i++){
+        spice_info("Reading Vertex data for mesh %d\n", i);
+        uint32_t vtx_count = 0;
+        fread(&vtx_count, sizeof(uint32_t), 1, model);
+        fread(new_mesh->vertices + vtx_offset, sizeof(sp_vertex), vtx_count, model);
+        vtx_offset += vtx_count;
+    }
 
-        int pos_count
-        int pos_off
-
-        int norm_count
-        int norm_off
-
-        int texcoord_count
-        int texcoord_off
-
-        int color_count
-        int color_off
-    
-        int texture_off
-        int primitive_offset
-        int object_offset
-
-        - Texture Segment - 
-        int count
-        texture_header[count] texture
-        void* texdata
-
-        - Texture Header -
-        int tex_start
-        int tex_end
-
-        - Primitive Segment - 
-        int count
-        primitive_header[count] primitive
-        void* primitivedata
-
-        - Primitive Header -
-        int primitive_type // enum, strip or trilist
-        int primitive_start_offset
-        int vtx_count
-        int attribute_indices[4]
-
-        - Object Header -
-        int object_count
-        object_mesh meshes
-
-        - Object Mesh -
-        int primitive_idx
-        int texture_idx
-    */
-    
 
     glGenVertexArrays(1, &new_mesh->_vao_id);
     glBindVertexArray(new_mesh->_vao_id);
@@ -305,9 +288,14 @@ void spiceMeshManagerDraw(){
     GPU_MatrixMode(spiceGraphicsWindowTarget(), GPU_VIEW);
     GPU_PushMatrix();
     GPU_LoadIdentity();
+    GPU_Translate(cam_position.x, cam_position.y, cam_position.z);
+    GPU_Rotate(cam_rotation.x, 1.0f, 0.0f, 0.0f);
+    GPU_Rotate(cam_rotation.y, 0.0f, 1.0f, 0.0f);
+    GPU_Rotate(cam_rotation.z, 0.0f, 0.0f, 1.0f);
     GPU_MatrixMode(spiceGraphicsWindowTarget(), GPU_PROJECTION);
     GPU_PushMatrix();
     GPU_LoadIdentity();
+    GPU_Perspective(90.0f, 1280/720, 0.00001, 10000.0f);
 
     glUseProgram(0);
     glBindVertexArray(0);
@@ -321,6 +309,8 @@ void spiceMeshManagerDraw(){
         if(mesh->texture != NULL){
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, GPU_GetTextureHandle(mesh->texture));
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
         }
         
         glBindVertexArray(mesh->_vao_id);

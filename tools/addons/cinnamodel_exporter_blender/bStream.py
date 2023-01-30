@@ -40,7 +40,7 @@ class bStream():
 			self.fhandle = io.BytesIO(data)
 			
 		self.decoder = 'shift-jis'
-		self.endian = '>'
+		self.endian = '<'
 
 	def getBuffer(self):
 		return self.fhandle if not self.isBuffered else None
