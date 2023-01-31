@@ -120,7 +120,7 @@ void spiceMeshManagerInit(uint32_t mesh_max){
     glDeleteShader(vs);
     glDeleteShader(fs);
 
-    mesh_manager._mvp_loc = GPU_GetUniformLocation(mesh_manager._default_shader, "gpu_ModelViewProjectionMatrix");
+    mesh_manager._mvp_loc = glGetUniformLocation(mesh_manager._default_shader, "gpu_ModelViewProjectionMatrix");
 
     atexit(spiceMeshManagerCleanup);
 }
@@ -278,29 +278,14 @@ void spiceMeshFree(sp_mesh* mesh){
 
 
 void spiceMeshManagerDraw(){
-
-    float mvp[16];
-
-    GPU_FlushBlitBuffer();
-    GPU_MatrixMode(spiceGraphicsWindowTarget(), GPU_MODEL);
-    GPU_PushMatrix();
-    GPU_LoadIdentity();
-    GPU_MatrixMode(spiceGraphicsWindowTarget(), GPU_VIEW);
-    GPU_PushMatrix();
-    GPU_LoadIdentity();
-    GPU_Translate(cam_position.x, cam_position.y, cam_position.z);
-    GPU_Rotate(cam_rotation.x, 1.0f, 0.0f, 0.0f);
-    GPU_Rotate(cam_rotation.y, 0.0f, 1.0f, 0.0f);
-    GPU_Rotate(cam_rotation.z, 0.0f, 0.0f, 1.0f);
-    GPU_MatrixMode(spiceGraphicsWindowTarget(), GPU_PROJECTION);
-    GPU_PushMatrix();
-    GPU_LoadIdentity();
-    GPU_Perspective(90.0f, 1280/720, 0.00001, 10000.0f);
-
+    float mvp[16] = {
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1
+    };
     glUseProgram(0);
     glBindVertexArray(0);
-    
-    GPU_GetModelViewProjection(mvp);
 
     glUseProgram(mesh_manager._default_shader);
 
@@ -308,7 +293,7 @@ void spiceMeshManagerDraw(){
         if(!mesh->_in_use) continue;
         if(mesh->texture != NULL){
             glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, GPU_GetTextureHandle(mesh->texture));
+            glBindTexture(GL_TEXTURE_2D, mesh->texture->texture);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
         }
@@ -320,13 +305,5 @@ void spiceMeshManagerDraw(){
         
         glBindVertexArray(0);
     }
-    
-    GPU_ResetRendererState();
-    GPU_MatrixMode(spiceGraphicsWindowTarget(), GPU_MODEL);
-    GPU_PopMatrix();
-    GPU_MatrixMode(spiceGraphicsWindowTarget(), GPU_VIEW);
-    GPU_PopMatrix();
-    GPU_MatrixMode(spiceGraphicsWindowTarget(), GPU_PROJECTION);
-    GPU_PopMatrix();
 
 }

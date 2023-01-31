@@ -1,6 +1,7 @@
 #ifndef __SPICE_MESH_H__
 #define __SPICE_MESH_H__
-#include <SDL_gpu_OpenGL_3.h>
+#include <SDL2/SDL.h>
+#include <glad/glad.h>
 #include <spice_math.h>
 #include <spice_util.h>
 
@@ -13,6 +14,14 @@ typedef struct {
 
 typedef struct {
     uint8_t _in_use;
+    uint32_t _ref_count; 
+    GLuint texture;
+
+    char* texture_data;
+} sp_texture;
+
+typedef struct {
+    uint8_t _in_use;
     uint8_t _dynamic;
     GLuint _vao_id;
     GLuint _vbo_id;
@@ -22,7 +31,7 @@ typedef struct {
 
     uint32_t vertex_count;
     sp_vertex* vertices;
-    GPU_Image* texture;
+    sp_texture* texture;
 } sp_mesh;
 
 typedef struct {

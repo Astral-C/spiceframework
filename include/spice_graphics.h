@@ -1,23 +1,20 @@
 #ifndef __SPICE_GRAPHICS_H__
 #define __SPICE_GRAPHICS_H__
+#include <glad/glad.h>
 #include <SDL2/SDL.h>
-#include <SDL_gpu.h>
 #include <spice_collision.h>
 
 typedef struct {
     SDL_Window* window;
-    GPU_Target* window_target;
-    GPU_Camera camera;
     SDL_Color clear_color;
+    SDL_GLContext context;
 
     uint32_t target_fps, ticks_per_frame;
     uint64_t cur_time, prev_time;
     float time;
 } spice_graphics;
 
-void spiceGraphicsInit(int width, int height, int target_fps, int window_flags);
-
-GPU_Target* spiceGraphicsWindowTarget();
+void spiceGraphicsInit(char* window_name, int width, int height, int target_fps, int window_flags);
 
 void spiceGraphicsSetClearColor(sp_vec4 color);
 

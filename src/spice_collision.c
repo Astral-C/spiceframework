@@ -1,4 +1,4 @@
-#include <SDL_gpu.h>
+#include <math.h>
 #include <spice_collision.h>
 
 // Allocates a new sp_convex_polygon with point_count points
