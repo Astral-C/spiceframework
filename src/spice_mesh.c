@@ -1,10 +1,13 @@
 #include <spice_mesh.h>
 #include <spice_graphics.h>
+#include <tm_matrix.h>
+#include <tm_vector.h>
 
 static spice_mesh_manager mesh_manager = {0};
 
-sp_vec3 cam_position = {0};
+sp_vec3 cam_position = {0, 0, 0};
 sp_vec3 cam_rotation = {0};
+tm_mat4 cam;
 
 static char glErrorLogBuffer[4096];
 
@@ -43,7 +46,7 @@ const char* default_frg_shader_source = "#version 330\n\
     \
     void main()\n\
     {\n\
-        vec4 baseColor = texture(texSampler, fragTexCoord);\n\
+        vec4 baseColor = texture(texSampler, vec2(fragTexCoord.x, -fragTexCoord.y));\n\
         outColor = baseColor * fragColori;//vec4(1.0, 1.0, 1.0, 1.0);\n\
     }\
 ";
@@ -278,12 +281,42 @@ void spiceMeshFree(sp_mesh* mesh){
 
 
 void spiceMeshManagerDraw(){
-    float mvp[16] = {
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 0,
-        0, 0, 0, 1
-    };
+
+    tm_mat4 projection, view, model, model_view;
+
+    tm_mat4_identity(model);
+
+    tm_perspective(45.0f, (float)1280/(float)720, 0.1f, 10000.0f, projection);
+    //tm_ortho(-1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 10000.0f, projection);
+
+    tm_lookat((tm_vec3){cam_position.x, cam_position.y, -cam_position.z}, (tm_vec3){0, 0, 0}, (tm_vec3){0, 1.0f, 0}, view);
+
+    tm_mat4_mult(model, view, model_view);
+    tm_mat4_mult(projection, model_view, cam);
+
+    /*
+    printf("Projection Matrix:\n %f %f %f %f\n %f %f %f %f\n %f %f %f %f\n %f %f %f %f\n\n",\
+        projection[0], projection[1], projection[2], projection[3],
+        projection[4], projection[5], projection[6], projection[7],
+        projection[8], projection[9], projection[10], projection[11],
+        projection[12], projection[13], projection[14], projection[15]\
+    );
+
+    printf("Lookat Matrix:\n %f %f %f %f\n %f %f %f %f\n %f %f %f %f\n %f %f %f %f\n\n",\
+        view[0], view[1], view[2], view[3],
+        view[4], view[5], view[6], view[7],
+        view[8], view[9], view[10], view[11],
+        view[12], view[13], view[14], view[15]\
+    );
+
+    printf("Camera Matrix:\n %f %f %f %f\n %f %f %f %f\n %f %f %f %f\n %f %f %f %f\n\n",\
+        cam[0], cam[1], cam[2], cam[3],
+        cam[4], cam[5], cam[6], cam[7],
+        cam[8], cam[9], cam[10], cam[11],
+        cam[12], cam[13], cam[14], cam[15]\
+    );
+    */
+
     glUseProgram(0);
     glBindVertexArray(0);
 
@@ -300,7 +333,7 @@ void spiceMeshManagerDraw(){
         
         glBindVertexArray(mesh->_vao_id);
 
-        glUniformMatrix4fv(mesh_manager._mvp_loc, 1, 0, mvp);
+        glUniformMatrix4fv(mesh_manager._mvp_loc, 1, 1, cam);
         glDrawArrays(GL_TRIANGLES, 0, mesh->vertex_count);
         
         glBindVertexArray(0);
