@@ -4,10 +4,12 @@
 #include <SDL2/SDL.h>
 #include <spice_collision.h>
 
+
 typedef struct {
     SDL_Window* window;
     SDL_Color clear_color;
     SDL_GLContext context;
+    struct nk_context* nk;
 
     uint32_t target_fps, ticks_per_frame;
     uint64_t cur_time, prev_time;
@@ -31,5 +33,9 @@ void spiceGraphicsSetResolution(int width, int height);
 void spiceGraphicsSetCamera(float x, float y, float zoom, float angle);
 
 void spiceGraphicsScreenMod(sp_vec4 color);
+
+SDL_Window* spiceGraphicsGetWindow();
+
+struct nk_context* spiceGetNuklearContext();
 
 #endif

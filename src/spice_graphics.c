@@ -1,6 +1,20 @@
 #include <spice_graphics.h>
+
+#define NK_INCLUDE_FIXED_TYPES
+#define NK_INCLUDE_STANDARD_IO
+#define NK_INCLUDE_STANDARD_VARARGS
+#define NK_INCLUDE_DEFAULT_ALLOCATOR
+#define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
+#define NK_INCLUDE_FONT_BAKING
+#define NK_INCLUDE_DEFAULT_FONT
+#define NK_IMPLEMENTATION
+#define NK_SDL_GL3_IMPLEMENTATION
+#include <nuklear.h>
+#include <nuklear_sdl_gl3.h>
+
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+
 
 static spice_graphics graphics = {0};
 
@@ -18,9 +32,11 @@ void spiceGraphicsInit(char* window_name, int width, int height, int target_fps,
     SDL_GL_SetAttribute( SDL_GL_BLUE_SIZE, 8 );
     SDL_GL_SetAttribute( SDL_GL_ALPHA_SIZE, 8 );
 
-    SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 3 );
-    SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 3 );
-    SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
+    SDL_SetHint(SDL_HINT_VIDEO_HIGHDPI_DISABLED, "0");
+    SDL_GL_SetAttribute (SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
+    SDL_GL_SetAttribute (SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
 
     // TODO: LOTS OF ERROR CHECKING
 
@@ -38,11 +54,19 @@ void spiceGraphicsInit(char* window_name, int width, int height, int target_fps,
 
     glViewport(0, 0, width, height);
 
+    graphics.nk = nk_sdl_init(graphics.window);
+
+    struct nk_font_atlas* atlas;
+    nk_sdl_font_stash_begin(&atlas);
+    nk_sdl_font_stash_end();
+
     atexit(spiceGraphicsClose);
 }
 
 void spiceGraphicsClose(){
     
+    nk_sdl_shutdown();
+
     SDL_GL_DeleteContext(graphics.context);
     SDL_DestroyWindow(graphics.window);
 
@@ -89,4 +113,12 @@ void spiceGraphicsStep(){
         SDL_Delay(graphics.ticks_per_frame - cur_frame_ticks);
     }
 
+}
+
+SDL_Window* spiceGraphicsGetWindow(){
+    return graphics.window;
+}
+
+struct nk_context* spiceGetNuklearContext(){
+    return graphics.nk;
 }

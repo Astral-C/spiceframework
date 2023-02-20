@@ -48,6 +48,8 @@ void vec3_sub(tm_vec3 v1, tm_vec3 v2, tm_vec3* dest);
 
 void vec3_mul(tm_vec3 v1, tm_vec3 v2, tm_vec3* dest);
 
+void vec3_mul_s(tm_vec3 v1, float s, tm_vec3* dest);
+
 void vec3_cross(tm_vec3 v1, tm_vec3 v2, tm_vec3* out);
 
 float vec3_dot(tm_vec3 v1, tm_vec3 v2);
