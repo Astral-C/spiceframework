@@ -62,6 +62,9 @@ typedef struct {
 typedef struct {
     uint8_t _in_use;
     sp_vec3 position;
+    int32_t sprite_size;
+    int32_t texture;
+    int32_t size_fixed;
 } sp_point_sprite;
 
 typedef struct {
@@ -71,9 +74,7 @@ typedef struct {
     
     GLuint _vao_id;
     GLuint _vbo_id;
-
-    sp_texture sprite;
-
+    
     uint32_t ps_max;
     sp_point_sprite* points;
 } spice_point_sprite_manager;
@@ -103,9 +104,9 @@ void spiceMeshManagerDraw();
 ////
 ///////////////////
 
-void spicePointSpritesInit(uint32_t ps_max);//, uint32_t texture_count, uint32_t max_texture_width, uint32_t max_texture_height);
+void spicePointSpritesInit(uint32_t ps_max, uint32_t texture_count, uint32_t max_texture_res);
 
-void spicePointSpriteSetTexture(GLuint texture);
+void spicePointSpriteSetTexture(uint8_t idx, char* img, uint32_t w, uint32_t h);
 
 sp_point_sprite* spicePointSpriteNew();
 

@@ -90,7 +90,7 @@ void spiceDrawSprite(sp_sprite* sprite, float x, float y, float rotation, uint32
     if(sprite == NULL || !sprite_manager._in_draw) return;
 
     //use nuklear to handle 2d draws
-    nk_draw_image(nk_window_get_canvas(sprite_manager.nk_ctx), (struct nk_rect){x, y, sprite->frame_w, sprite->frame_h}, &sprite->image, (struct nk_color){255,255,255,255});
+    nk_draw_image(nk_window_get_canvas(sprite_manager.nk_ctx), (struct nk_rect){x, y, 64, 64}, &sprite->image, (struct nk_color){255,255,255,255});
     /*
     GPU_Rect src = (GPU_Rect){((uint32_t)frame) * sprite->frame_w, row * sprite->frame_h, sprite->frame_w, sprite->frame_h};
     GPU_BlitTransform(sprite->texture, &src, sprite_manager._window_target, x * sprite->parallax_factor.x, y * sprite->parallax_factor.y, rotation, 1, 1);
@@ -127,7 +127,6 @@ void spiceSpriteEndDraw(){
     nk_end(sprite_manager.nk_ctx);
 
     nk_style_pop_vec2(sprite_manager.nk_ctx);
-    nk_style_pop_color(sprite_manager.nk_ctx);
     nk_style_pop_style_item(sprite_manager.nk_ctx);
     
     sprite_manager._in_draw = 0;

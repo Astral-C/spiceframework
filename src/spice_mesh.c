@@ -52,19 +52,29 @@ const char* default_frg_shader_source = "#version 330\n\
 
 const char* default_ps_vtx_shader_source = "#version 330\n\
 layout (location = 0) in vec3 position;\n\
+layout (location = 1) in int tex;\n\
+layout (location = 2) in int size;\n\
+layout (location = 3) in int fixed_size;\n\
+flat out int tex_idx;\n\
 uniform mat4 gpu_ModelViewProjectionMatrix;\n\
 void main()\n\
 {\n\
     gl_Position = gpu_ModelViewProjectionMatrix * vec4(position, 1.0);\n\
-    gl_PointSize = 10.0;\n\
+    if(fixed_size != 0){\n\
+        gl_PointSize = size;\n\
+    } else {\n\
+        gl_PointSize = size / gl_Position.w;\n\
+    }\n\
+    tex_idx = tex;\n\
 }\
 ";
 
 const char* default_ps_frg_shader_source = "#version 330\n\
-uniform sampler2D spriteTexture;\n\
+uniform sampler2DArray spriteTexture;\n\
+flat in int tex_idx;\n\
 void main()\n\
 {\n\
-    gl_FragColor = texture(spriteTexture, gl_PointCoord);\n\
+    gl_FragColor = texture(spriteTexture, vec3(gl_PointCoord, tex_idx));\n\
 }\
 ";
 
@@ -353,15 +363,18 @@ void spiceMeshManagerDraw(){
 ///////////////////
 
 void spicePointSpriteCleanup(){
+    glDeleteTextures(1, &point_sprite_manager.textures);
     glDeleteVertexArrays(1, &point_sprite_manager._vao_id);
     glDeleteBuffers(1, &point_sprite_manager._vbo_id);
     free(point_sprite_manager.points);
+    
 }
 
-void spicePointSpritesInit(uint32_t ps_max){
+void spicePointSpritesInit(uint32_t ps_max, uint32_t texture_count, uint32_t max_texture_res){
     point_sprite_manager.ps_max = ps_max;
 
     point_sprite_manager.points = malloc(sizeof(sp_point_sprite)*ps_max);
+
     memset(point_sprite_manager.points, 0, sizeof(sp_point_sprite)*ps_max);
     
 
@@ -429,15 +442,30 @@ void spicePointSpritesInit(uint32_t ps_max){
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(sp_point_sprite), (void*)offsetof(sp_point_sprite, position));
     glEnableVertexAttribArray(1);
+    glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, sizeof(sp_point_sprite), (void*)offsetof(sp_point_sprite, texture));
+    glEnableVertexAttribArray(2);
+    glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, sizeof(sp_point_sprite), (void*)offsetof(sp_point_sprite, sprite_size));
+    glEnableVertexAttribArray(3);
+    glVertexAttribIPointer(3, 1, GL_UNSIGNED_INT, sizeof(sp_point_sprite), (void*)offsetof(sp_point_sprite, size_fixed));
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
+    glGenTextures(1, &point_sprite_manager.textures);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, point_sprite_manager.textures);
+
+    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, max_texture_res, max_texture_res, texture_count, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, point_sprite_manager.textures);
+
     atexit(spicePointSpriteCleanup);
 }
 
-void spicePointSpriteSetTexture(GLuint texture){
-    point_sprite_manager.sprite.texture = texture;
+void spicePointSpriteSetTexture(uint8_t idx, char* img, uint32_t w, uint32_t h){
+
+    glBindTexture(GL_TEXTURE_2D_ARRAY, point_sprite_manager.textures);
+    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, idx, w, h, 1, GL_RGBA, GL_UNSIGNED_BYTE, img);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+
 }
 
 sp_point_sprite* spicePointSpriteNew(){
@@ -468,9 +496,9 @@ void spicePointSpriteDraw(){
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
+    
+    glEnable(GL_PROGRAM_POINT_SIZE);
     glEnable(GL_POINT_SPRITE);
-    glPointSize(128.0f);
 
     tm_mat4 cam, projection, view, model, model_view;
 
@@ -492,15 +520,22 @@ void spicePointSpriteDraw(){
     glUseProgram(point_sprite_manager._ps_shader);
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, point_sprite_manager.sprite.texture);
-    glTexEnvi(GL_POINT_SPRITE, GL_COORD_REPLACE, GL_TRUE);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, point_sprite_manager.textures);
 
+    //glTexEnvi(GL_POINT_SPRITE, GL_COORD_REPLACE, GL_TRUE);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BASE_LEVEL, 0);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_LEVEL, 4);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
         
     glBindVertexArray(point_sprite_manager._vao_id);
 
     glUniformMatrix4fv(point_sprite_manager._mvp_loc, 1, 0, cam);
     glDrawArrays(GL_POINTS, 0, point_sprite_manager.ps_max);
-        
+    
+    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
     glBindVertexArray(0);
 
 }
