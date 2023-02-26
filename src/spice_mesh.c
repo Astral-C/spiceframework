@@ -8,8 +8,6 @@ static spice_point_sprite_manager point_sprite_manager = {0};
 
 tm_orbit_camera camera = {0};
 
-static char glErrorLogBuffer[4096];
-
 const char* default_vtx_shader_source = "#version 330\n\
     #extension GL_ARB_separate_shader_objects : enable\n\
     \
@@ -63,7 +61,7 @@ void main()\n\
     if(fixed_size != 0){\n\
         gl_PointSize = size;\n\
     } else {\n\
-        gl_PointSize = size / gl_Position.w;\n\
+        gl_PointSize = min(size, size / gl_Position.w);\n\
     }\n\
     tex_idx = tex;\n\
 }\
@@ -75,6 +73,7 @@ flat in int tex_idx;\n\
 void main()\n\
 {\n\
     gl_FragColor = texture(spriteTexture, vec3(gl_PointCoord, tex_idx));\n\
+    if(gl_FragColor.a < 1.0 / 255.0) discard;\n\
 }\
 ";
 
@@ -96,59 +95,10 @@ void spiceMeshManagerInit(uint32_t mesh_max){
     mesh_manager.meshes = malloc(sizeof(sp_mesh) * mesh_max);
     memset(mesh_manager.meshes, 0, sizeof(sp_mesh) * mesh_max);
     mesh_manager.mesh_max = mesh_max;
-    
 
-    GLuint vs = glCreateShader(GL_VERTEX_SHADER);
-    GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
-
-    glShaderSource(vs, 1, (const char**)&default_vtx_shader_source, NULL);
-    glShaderSource(fs, 1, (const char**)&default_frg_shader_source, NULL);
-    
-    glCompileShader(vs);
-
-    GLint status;
-    glGetShaderiv(vs, GL_COMPILE_STATUS, &status);
-    if(status == GL_FALSE){
-        GLint infoLogLength;
-        glGetShaderiv(vs, GL_INFO_LOG_LENGTH, &infoLogLength);
-        
-        glGetShaderInfoLog(vs, infoLogLength, NULL, glErrorLogBuffer);
-        
-        spice_error("Compile failure in vertex shader:\n%s\n", glErrorLogBuffer);
+    if(spiceGraphicsCompileShader((const char**)&default_vtx_shader_source, (const char**)&default_frg_shader_source, &mesh_manager._default_shader) == SP_ERROR){
+        spice_error("Failed to compile shader for mesh manager!");
     }
-
-    glCompileShader(fs);
-
-    glGetShaderiv(fs, GL_COMPILE_STATUS, &status);
-    if(status == GL_FALSE){
-        GLint infoLogLength;
-        glGetShaderiv(fs, GL_INFO_LOG_LENGTH, &infoLogLength);
-        
-        glGetShaderInfoLog(fs, infoLogLength, NULL, glErrorLogBuffer);
-        
-        spice_error("Compile failure in fragment shader:\n%s\n", glErrorLogBuffer);
-    }
-
-    mesh_manager._default_shader = glCreateProgram();
-    
-    glAttachShader(mesh_manager._default_shader, vs);
-    glAttachShader(mesh_manager._default_shader, fs);
-
-    glLinkProgram(mesh_manager._default_shader);
- 
-    glGetProgramiv(mesh_manager._default_shader, GL_LINK_STATUS, &status); 
-    if(GL_FALSE == status) {
-        GLint logLen; 
-        glGetProgramiv(mesh_manager._default_shader, GL_INFO_LOG_LENGTH, &logLen); 
-        glGetProgramInfoLog(mesh_manager._default_shader, logLen, NULL, glErrorLogBuffer); 
-        spice_error("Shader Program Linking Error:\n%s\n", glErrorLogBuffer);
-    } 
-
-    glDetachShader(mesh_manager._default_shader, vs);
-    glDetachShader(mesh_manager._default_shader, fs);
-
-    glDeleteShader(vs);
-    glDeleteShader(fs);
 
     mesh_manager._mvp_loc = glGetUniformLocation(mesh_manager._default_shader, "gpu_ModelViewProjectionMatrix");
 
@@ -167,7 +117,7 @@ sp_mesh* spiceMeshNewDynamic(uint32_t max_vertices){
     }
 
     if(new_mesh == NULL){
-        spice_error("No meshes available!", NULL);
+        spice_error("No meshes available!");
         return NULL;
     }
     
@@ -210,7 +160,7 @@ sp_mesh* spiceMeshLoadCinnamodel(char* model_path){
     }
 
     if(new_mesh == NULL){
-        spice_error("No meshes available!", NULL);
+        spice_error("No meshes available!");
         return NULL;
     }
 
@@ -224,7 +174,7 @@ sp_mesh* spiceMeshLoadCinnamodel(char* model_path){
 
     uint32_t mesh_count = 0;
 
-    spice_info("Reading Mesh Count\n", NULL);
+    spice_info("Reading Mesh Count\n");
 
     fread(&mesh_count, sizeof(uint32_t), 1, model);
 
@@ -281,7 +231,7 @@ sp_mesh* spiceMeshLoadCinnamodel(char* model_path){
 
 void spiceMeshUpdateBuffer(sp_mesh* mesh){
     if(mesh->_dynamic != 1){
-        spice_error("Attempted to update static mesh",NULL);
+        spice_error("Attempted to update static mesh");
         return;
     }
     glBindBuffer(GL_ARRAY_BUFFER, mesh->_vbo_id);
@@ -292,7 +242,7 @@ void spiceMeshUpdateBuffer(sp_mesh* mesh){
 
 void spiceMeshSetVertex(sp_mesh* mesh, sp_vertex vtx, uint32_t idx){
     if(!mesh->_dynamic){
-        spice_error("Attempted to set vertex on static model", NULL);
+        spice_error("Attempted to set vertex on static model");
         return;
     }
 
@@ -304,7 +254,7 @@ void spiceMeshFree(sp_mesh* mesh){
     glDeleteVertexArrays(1, &mesh->_vao_id);
     glDeleteBuffers(1, &mesh->_vbo_id);
     free(mesh->vertices);
-    if(mesh->texture) free(mesh->texture);
+    if(mesh->texture) spiceTextureFree(mesh->texture);
 }
 
 
@@ -319,14 +269,11 @@ void spiceMeshManagerDraw(){
     glEnable(GL_CULL_FACE);  
     glFrontFace(GL_CCW);
 
-    tm_mat4 projection, view, inverted_view, model, model_view;
+    tm_mat4 model, mvp;
 
     tm_mat4_identity(model);
 
-    tm_perspective(90.0f, (float)1280/(float)720, 0.01f, 1000.0f, projection);
-    //tm_ortho(0.0f, 1280.0f, 0.0f, 720.0f, -1.0f, 10.0f, projection);
-
-    tm_orbit_camera_update_view(&camera, view);
+    spiceOrbitCamGetMVP(model, mvp);
 
 
     glUseProgram(0);
@@ -337,18 +284,14 @@ void spiceMeshManagerDraw(){
     for (sp_mesh* mesh = mesh_manager.meshes; mesh < mesh_manager.meshes + mesh_manager.mesh_max; mesh++){
         if(!mesh->_in_use) continue;
         if(mesh->texture != NULL){
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, mesh->texture->texture);
+            spiceTextureBind(mesh->texture, GL_TEXTURE0);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
         }
-
-        tm_mat4_mult(model, view, model_view);
-        tm_mat4_mult(projection, model_view, cam);
         
         glBindVertexArray(mesh->_vao_id);
 
-        glUniformMatrix4fv(mesh_manager._mvp_loc, 1, 0, cam);
+        glUniformMatrix4fv(mesh_manager._mvp_loc, 1, 0, mvp);
         glDrawArrays(GL_TRIANGLES, 0, mesh->vertex_count);
         
         glBindVertexArray(0);
@@ -363,7 +306,7 @@ void spiceMeshManagerDraw(){
 ///////////////////
 
 void spicePointSpriteCleanup(){
-    glDeleteTextures(1, &point_sprite_manager.textures);
+    spiceTextureFree(point_sprite_manager.textures);
     glDeleteVertexArrays(1, &point_sprite_manager._vao_id);
     glDeleteBuffers(1, &point_sprite_manager._vbo_id);
     free(point_sprite_manager.points);
@@ -376,59 +319,8 @@ void spicePointSpritesInit(uint32_t ps_max, uint32_t texture_count, uint32_t max
     point_sprite_manager.points = malloc(sizeof(sp_point_sprite)*ps_max);
 
     memset(point_sprite_manager.points, 0, sizeof(sp_point_sprite)*ps_max);
-    
 
-    GLuint vs = glCreateShader(GL_VERTEX_SHADER);
-    GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
-
-    glShaderSource(vs, 1, (const char**)&default_ps_vtx_shader_source, NULL);
-    glShaderSource(fs, 1, (const char**)&default_ps_frg_shader_source, NULL);
-    
-    glCompileShader(vs);
-
-    GLint status;
-    glGetShaderiv(vs, GL_COMPILE_STATUS, &status);
-    if(status == GL_FALSE){
-        GLint infoLogLength;
-        glGetShaderiv(vs, GL_INFO_LOG_LENGTH, &infoLogLength);
-        
-        glGetShaderInfoLog(vs, infoLogLength, NULL, glErrorLogBuffer);
-        
-        spice_error("Compile failure in vertex shader for point sprites:\n%s\n", glErrorLogBuffer);
-    }
-
-    glCompileShader(fs);
-
-    glGetShaderiv(fs, GL_COMPILE_STATUS, &status);
-    if(status == GL_FALSE){
-        GLint infoLogLength;
-        glGetShaderiv(fs, GL_INFO_LOG_LENGTH, &infoLogLength);
-        
-        glGetShaderInfoLog(fs, infoLogLength, NULL, glErrorLogBuffer);
-        
-        spice_error("Compile failure in fragment shader for point sprites:\n%s\n", glErrorLogBuffer);
-    }
-
-    point_sprite_manager._ps_shader = glCreateProgram();
-    
-    glAttachShader(point_sprite_manager._ps_shader, vs);
-    glAttachShader(point_sprite_manager._ps_shader, fs);
-
-    glLinkProgram(point_sprite_manager._ps_shader);
- 
-    glGetProgramiv(point_sprite_manager._ps_shader, GL_LINK_STATUS, &status); 
-    if(GL_FALSE == status) {
-        GLint logLen; 
-        glGetProgramiv(point_sprite_manager._ps_shader, GL_INFO_LOG_LENGTH, &logLen); 
-        glGetProgramInfoLog(point_sprite_manager._ps_shader, logLen, NULL, glErrorLogBuffer); 
-        spice_error("Shader Program Linking Error:\n%s\n", glErrorLogBuffer);
-    } 
-
-    glDetachShader(point_sprite_manager._ps_shader, vs);
-    glDetachShader(point_sprite_manager._ps_shader, fs);
-
-    glDeleteShader(vs);
-    glDeleteShader(fs);
+    spiceGraphicsCompileShader((const char**)&default_ps_vtx_shader_source, (const char**)&default_ps_frg_shader_source, &point_sprite_manager._ps_shader);
 
     point_sprite_manager._mvp_loc = glGetUniformLocation(point_sprite_manager._ps_shader, "gpu_ModelViewProjectionMatrix");
 
@@ -451,21 +343,13 @@ void spicePointSpritesInit(uint32_t ps_max, uint32_t texture_count, uint32_t max
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
-    glGenTextures(1, &point_sprite_manager.textures);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, point_sprite_manager.textures);
-
-    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, max_texture_res, max_texture_res, texture_count, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, point_sprite_manager.textures);
+    point_sprite_manager.textures = spiceTextureArrayInit(texture_count, max_texture_res, max_texture_res);
 
     atexit(spicePointSpriteCleanup);
 }
 
-void spicePointSpriteSetTexture(uint8_t idx, char* img, uint32_t w, uint32_t h){
-
-    glBindTexture(GL_TEXTURE_2D_ARRAY, point_sprite_manager.textures);
-    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, idx, w, h, 1, GL_RGBA, GL_UNSIGNED_BYTE, img);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
-
+void spicePointSpriteSetTexture(uint8_t idx, char* img){
+    spiceTextureArrayLoad(point_sprite_manager.textures, img, idx);
 }
 
 sp_point_sprite* spicePointSpriteNew(){
@@ -479,7 +363,7 @@ sp_point_sprite* spicePointSpriteNew(){
     }
 
     if(new_ps == NULL){
-        spice_error("No point sprites available!", NULL);
+        spice_error("No point sprites available!");
         return NULL;
     }
 
@@ -500,15 +384,11 @@ void spicePointSpriteDraw(){
     glEnable(GL_PROGRAM_POINT_SIZE);
     glEnable(GL_POINT_SPRITE);
 
-    tm_mat4 cam, projection, view, model, model_view;
+    tm_mat4 model, mvp;
 
     tm_mat4_identity(model);
 
-    tm_perspective(90.0f, (float)1280/(float)720, 0.01f, 1000.0f, projection);
-
-    tm_orbit_camera_update_view(&camera, view);
-    tm_mat4_mult(model, view, model_view);
-    tm_mat4_mult(projection, model_view, cam);
+    spiceOrbitCamGetMVP(model, mvp);
 
     glUseProgram(0);
     glBindVertexArray(0);
@@ -519,23 +399,14 @@ void spicePointSpriteDraw(){
 
     glUseProgram(point_sprite_manager._ps_shader);
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, point_sprite_manager.textures);
-
-    //glTexEnvi(GL_POINT_SPRITE, GL_COORD_REPLACE, GL_TRUE);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BASE_LEVEL, 0);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_LEVEL, 4);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    spiceTextureBind(point_sprite_manager.textures, GL_TEXTURE0);
         
     glBindVertexArray(point_sprite_manager._vao_id);
 
-    glUniformMatrix4fv(point_sprite_manager._mvp_loc, 1, 0, cam);
+    glUniformMatrix4fv(point_sprite_manager._mvp_loc, 1, 0, mvp);
     glDrawArrays(GL_POINTS, 0, point_sprite_manager.ps_max);
     
-    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+    spiceTextureUnbind(point_sprite_manager.textures);
     glBindVertexArray(0);
 
 }

@@ -4,6 +4,7 @@
 #include <spice_util.h>
 #include <spice_math.h>
 #include <spice_graphics.h>
+#include <spice_texture.h>
 
 #define NK_INCLUDE_FIXED_TYPES
 #define NK_INCLUDE_STANDARD_IO
@@ -20,8 +21,7 @@ typedef struct {
     uint32_t _ref_count;
     uint16_t frame_w, frame_h;
     
-    char* texture_data;
-    unsigned int texture_id;
+    sp_texture* texture;
 
     struct nk_image image;
 } sp_sprite;

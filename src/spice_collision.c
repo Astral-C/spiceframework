@@ -1,5 +1,6 @@
 #include <math.h>
 #include <spice_collision.h>
+#include <tm_vector.h>
 
 // Allocates a new sp_convex_polygon with point_count points
 // Returns pointer to new sp_convex_polygon on success

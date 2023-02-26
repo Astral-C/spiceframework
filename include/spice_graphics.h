@@ -38,4 +38,6 @@ SDL_Window* spiceGraphicsGetWindow();
 
 struct nk_context* spiceGetNuklearContext();
 
+sp_status spiceGraphicsCompileShader(const char** vtx_shader_source, const char** frg_shader_source, GLuint* out);
+
 #endif

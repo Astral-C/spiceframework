@@ -5,6 +5,7 @@
 #include <spice_math.h>
 #include <spice_util.h>
 #include <spice_cam.h>
+#include <spice_texture.h>
 
 ///////////////////
 ////
@@ -18,14 +19,6 @@ typedef struct {
     sp_vec2 texcoord;
     sp_vec4 color;
 } sp_vertex;
-
-typedef struct {
-    uint8_t _in_use;
-    uint32_t _ref_count; 
-    GLuint texture;
-
-    char* texture_data;
-} sp_texture;
 
 typedef struct {
     uint8_t _in_use;
@@ -70,7 +63,7 @@ typedef struct {
 typedef struct {
     GLuint _ps_shader;
     GLuint _mvp_loc;
-    GLuint textures; //3d texture, each layer is different point sprite texture
+    sp_texture* textures; //3d texture, each layer is different point sprite texture
     
     GLuint _vao_id;
     GLuint _vbo_id;
@@ -106,20 +99,12 @@ void spiceMeshManagerDraw();
 
 void spicePointSpritesInit(uint32_t ps_max, uint32_t texture_count, uint32_t max_texture_res);
 
-void spicePointSpriteSetTexture(uint8_t idx, char* img, uint32_t w, uint32_t h);
+void spicePointSpriteSetTexture(uint8_t idx, char* img);
 
 sp_point_sprite* spicePointSpriteNew();
 
 void spicePointSpriteFree(sp_point_sprite* sprite);
 
 void spicePointSpriteDraw();
-
-///////////////////
-////
-//// Garbage Temporary Stuff, TODO: Remove this and give each renderer a pointer to the camera?
-////
-///////////////////
-
-extern tm_orbit_camera camera;
 
 #endif

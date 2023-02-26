@@ -56,9 +56,11 @@ void spiceGraphicsInit(char* window_name, int width, int height, int target_fps,
 
     graphics.nk = nk_sdl_init(graphics.window);
 
-    struct nk_font_atlas* atlas;
-    nk_sdl_font_stash_begin(&atlas);
-    nk_sdl_font_stash_end();
+    {
+        struct nk_font_atlas* atlas;
+        nk_sdl_font_stash_begin(&atlas);
+        nk_sdl_font_stash_end();
+    }
 
     SDL_ShowCursor(0);
 
@@ -123,4 +125,66 @@ SDL_Window* spiceGraphicsGetWindow(){
 
 struct nk_context* spiceGetNuklearContext(){
     return graphics.nk;
+}
+
+sp_status spiceGraphicsCompileShader(const char** vtx_shader_source, const char** frg_shader_source, GLuint* out){
+    char glErrorLogBuffer[4096];
+    GLuint vs = glCreateShader(GL_VERTEX_SHADER);
+    GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
+
+    glShaderSource(vs, 1, vtx_shader_source, NULL);
+    glShaderSource(fs, 1, frg_shader_source, NULL);
+    
+    glCompileShader(vs);
+
+    GLint status;
+    glGetShaderiv(vs, GL_COMPILE_STATUS, &status);
+    if(status == GL_FALSE){
+        GLint infoLogLength;
+        glGetShaderiv(vs, GL_INFO_LOG_LENGTH, &infoLogLength);
+        
+        glGetShaderInfoLog(vs, infoLogLength, NULL, glErrorLogBuffer);
+        
+        spice_error("Compile failure in vertex shader:\n%s\n", glErrorLogBuffer);
+
+        return SP_ERROR;
+    }
+
+    glCompileShader(fs);
+
+    glGetShaderiv(fs, GL_COMPILE_STATUS, &status);
+    if(status == GL_FALSE){
+        GLint infoLogLength;
+        glGetShaderiv(fs, GL_INFO_LOG_LENGTH, &infoLogLength);
+        
+        glGetShaderInfoLog(fs, infoLogLength, NULL, glErrorLogBuffer);
+        
+        spice_error("Compile failure in fragment shader:\n%s\n", glErrorLogBuffer);
+
+        return SP_ERROR;
+    }
+
+    *out = glCreateProgram();
+    
+    glAttachShader(*out, vs);
+    glAttachShader(*out, fs);
+
+    glLinkProgram(*out);
+ 
+    glGetProgramiv(*out, GL_LINK_STATUS, &status); 
+    if(GL_FALSE == status) {
+        GLint logLen; 
+        glGetProgramiv(*out, GL_INFO_LOG_LENGTH, &logLen); 
+        glGetProgramInfoLog(*out, logLen, NULL, glErrorLogBuffer); 
+        spice_error("Shader Program Linking Error:\n%s\n", glErrorLogBuffer);
+        return SP_ERROR;
+    } 
+
+    glDetachShader(*out, vs);
+    glDetachShader(*out, fs);
+
+    glDeleteShader(vs);
+    glDeleteShader(fs);
+
+    return SP_SUCCESS;
 }

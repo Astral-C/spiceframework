@@ -10,6 +10,14 @@ typedef struct {
     float vertical_angle;   // The vertical angle between the camera and the target
 } tm_orbit_camera;
 
-void tm_orbit_camera_update_view(tm_orbit_camera* camera, tm_mat4 view);
+void spiceOrbitCamInit(float fov, float w, float h, float near, float far);
+
+void spiceOrbitCamUpdate();
+
+void spiceOrbitCamGetMVP(tm_mat4 model_matrix, tm_mat4 out);
+
+void spiceOrbitCamGetView(tm_mat4 out);
+
+tm_orbit_camera* spiceGetOrbitCam();
 
 #endif
