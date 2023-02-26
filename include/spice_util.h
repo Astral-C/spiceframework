@@ -19,11 +19,11 @@ typedef enum {
 #define __FILENAME__ (strrchr(__FILE__, '/')+1)
 #endif
 
-#define spice_error(msg, ...) fprintf(stderr, "[ERROR %s:L%d]: ", __FILENAME__, __LINE__); fprintf(stderr, msg, __VA_ARGS__);
-#define spice_info(msg, ...) fprintf(stdout, "[INFO %s:L%d]: ", __FILENAME__, __LINE__); fprintf(stdout, msg, __VA_ARGS__);
+#define spice_error(msg, ...) fprintf(stderr, "[ERROR %s:L%d]: ", __FILENAME__, __LINE__); fprintf(stderr, msg __VA_OPT__(,) __VA_ARGS__);
+#define spice_info(msg, ...) fprintf(stdout, "[INFO %s:L%d]: ", __FILENAME__, __LINE__); fprintf(stdout, msg __VA_OPT__(,) __VA_ARGS__);
 
 #ifdef SPICE_DEBUG_PRINT
-#define spice_debug(msg, ...) fprintf(stdout, "[DEBUG %s:L%d]: ", __FILENAME__, __LINE__); fprintf(stdout, msg, __VA_ARGS__);
+#define spice_debug(msg, ...) fprintf(stdout, "[DEBUG %s:L%d]: ", __FILENAME__, __LINE__); fprintf(stdout, msg __VA_OPT__(,) __VA_ARGS__);
 #else
 #define spice_debug(msg, ...) do {} while(0);
 #endif
@@ -43,6 +43,13 @@ typedef char sp_key[SPICE_KEYMAX];
 
 #define FNV_PRIME 0x100000001b3
 #define FNV_OFFSET_BASIS 0xcbf29ce484222325
+
+/////////////////////////////////////////
+/// Allocation Functions 
+/////////////////////////////////////////
+
+//void* (*spiceAllocMem)(size_t sz);
+//void* (*spiceFreeMem)(size_t sz);
 
 uint64_t spHash(char* data, size_t size);
 

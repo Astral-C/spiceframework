@@ -1,14 +1,17 @@
 #include <spice_sprite.h>
-#include <spice_graphics.h>
 #include <spice_util.h>
+#include <stb_image.h>
 
 static sp_sprite_manager sprite_manager = {0};
 
 void spiceSpriteInit(uint32_t sprite_count){
     sprite_manager._sprite_count = sprite_count;
     sprite_manager.sprites = (sp_sprite*)malloc(sizeof(sp_sprite) * sprite_count);
+
+    sprite_manager.nk_ctx = spiceGetNuklearContext();
+    sprite_manager._in_draw = 0;
+
     memset(sprite_manager.sprites, 0, sizeof(sp_sprite) * sprite_count);
-    sprite_manager._window_target = spiceGraphicsWindowTarget();
     atexit(spiceSpriteClose);
 }
 
@@ -19,7 +22,7 @@ sp_sprite* spiceLoadSprite(char* path){
     for (size_t i = 0; i < sprite_manager._sprite_count; i++){
         if(sprite_manager.sprites[i]._id == id){ // Sprite already loaded, return it. Or a collision. Oop-
             sprite_manager.sprites[i]._ref_count++;
-            spice_info("Returning Sprite %d, IDs match\n", NULL);
+            spice_info("Returning Sprite %d, IDs match\n", i);
             return &sprite_manager.sprites[i];
         }
         
@@ -30,34 +33,13 @@ sp_sprite* spiceLoadSprite(char* path){
 
     // Out of sprite space
     if(found_sprite == NULL){
-        spice_error("Out of sprite space!\n", NULL);
+        spice_error("Out of sprite space!\n");
         return NULL;
     }
 
-    // Try to load the image...
-    GPU_Image* img = GPU_LoadImage(path);
-            
-    if(img == NULL){
-        spice_error("SDL_gpu Couldn't load image!\n", NULL);
-        return NULL; //and I oop- can't load the sprite
-    }
-
-    // We can load the sprite properly so now and only now do we finally remove this sprite image
-    if(found_sprite->texture != NULL){
-        GPU_FreeImage(found_sprite->texture);
-        found_sprite->texture = NULL;
-    }
-    
-    // Finalize setup and then return
-
+    found_sprite->texture = spiceTexture2DLoad(path);
+    found_sprite->image = nk_image_id(found_sprite->texture->texture_id);
     found_sprite->_ref_count++;
-    found_sprite->texture = img;
-    found_sprite->_id = id;
-
-    found_sprite->frame_w = img->base_w;
-    found_sprite->frame_h = img->base_h;
-    found_sprite->parallax_factor = (sp_vec2){1,1};
-    spice_info("Returning Sprite with addr %p\n", found_sprite);
 
     return found_sprite;
 }
@@ -65,20 +47,45 @@ sp_sprite* spiceLoadSprite(char* path){
 void spiceFreeSprite(sp_sprite* sprite){
     if(sprite == NULL) return;
     sprite->_ref_count--;
+    if(sprite->_ref_count == 0){
+        //todo: free
+    }
 }
 
 void spiceDrawSprite(sp_sprite* sprite, float x, float y, float rotation, uint32_t row, float frame){
-    if(sprite == NULL) return;
-    GPU_Rect src = (GPU_Rect){((uint32_t)frame) * sprite->frame_w, row * sprite->frame_h, sprite->frame_w, sprite->frame_h};
-    GPU_BlitTransform(sprite->texture, &src, sprite_manager._window_target, x * sprite->parallax_factor.x, y * sprite->parallax_factor.y, rotation, 1, 1);
+    if(sprite == NULL || !sprite_manager._in_draw) return;
 
+    nk_draw_image(nk_window_get_canvas(sprite_manager.nk_ctx), (struct nk_rect){x, y, sprite->frame_w, sprite->frame_h}, &sprite->image, (struct nk_color){255,255,255,255});
+}
+
+void spiceSpriteDrawText(char* text, float x, float y){
+    if(!sprite_manager._in_draw) return;
+
+    nk_draw_text(nk_window_get_canvas(sprite_manager.nk_ctx), (struct nk_rect){x, y, 200, 200}, text, strlen(text), sprite_manager.nk_ctx->style.font, (struct nk_color){0,0,0,0}, (struct nk_color){255,255,255,255});
 }
 
 void spiceSpriteClose(){
     for (size_t i = 0; i < sprite_manager._sprite_count; i++){
         if(sprite_manager.sprites[i].texture != NULL){
-            GPU_FreeImage(sprite_manager.sprites[i].texture);
+            spiceTextureFree(sprite_manager.sprites[i].texture);
         }
     }
     free(sprite_manager.sprites);
+}
+
+void spiceSpriteBeginDraw(){
+    nk_style_push_style_item(sprite_manager.nk_ctx, &sprite_manager.nk_ctx->style.window.fixed_background, nk_style_item_color(nk_rgba(0,0,0,0)));
+	nk_style_push_vec2(sprite_manager.nk_ctx, &sprite_manager.nk_ctx->style.window.padding, nk_vec2(0,0));
+
+    nk_begin(sprite_manager.nk_ctx, "", nk_rect(0,0,1280,720), NK_WINDOW_NO_SCROLLBAR | NK_WINDOW_NO_INPUT | NK_WINDOW_BACKGROUND);
+    sprite_manager._in_draw = 1;
+}
+
+void spiceSpriteEndDraw(){
+    nk_end(sprite_manager.nk_ctx);
+
+    nk_style_pop_vec2(sprite_manager.nk_ctx);
+    nk_style_pop_style_item(sprite_manager.nk_ctx);
+    
+    sprite_manager._in_draw = 0;
 }

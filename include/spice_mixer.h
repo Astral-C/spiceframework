@@ -24,6 +24,17 @@ typedef struct {
 } sp_clip;
 
 typedef struct {
+    int _in_use;
+    int sample_offset;
+    
+    void* data;
+} sp_instrument;
+
+typedef struct {
+    
+} sp_channel;
+
+typedef struct {
     uint8_t ready;
     float volume;
     SDL_AudioSpec _target_spec;

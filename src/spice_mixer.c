@@ -6,6 +6,11 @@ static spice_mixer mixer = {0};
 void spiceMixClip(sp_clip* clip, int16_t *stream, int len){
     if(clip == NULL) return;
 
+    if(clip->sample_offset >= clip->length){
+        clip->playing = clip->loop;
+        clip->sample_offset = 0;
+    }
+
     switch (clip->source_spec.format)
     {
     case AUDIO_F32:
@@ -28,11 +33,6 @@ void spiceMixClip(sp_clip* clip, int16_t *stream, int len){
         }
         spice_error("Unknown sample format! Format is %u\n", clip->source_spec.format);
         break;
-    }
-
-    if(clip->sample_offset > clip->length){
-        clip->playing = clip->loop;
-        clip->sample_offset = 0;
     }
 }
 
@@ -98,6 +98,7 @@ sp_clip* spiceMixerLoadWav(char* path){
             clip->_in_use = 1;
             clip->pitch = 2; //default pitch to 1
             clip->type = CLIP_TYPE_WAV;
+            clip->length /= 2; //2 bytes per sample, 2 samples (left/right) per update
             return clip;
         }
     }
