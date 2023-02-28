@@ -37,6 +37,12 @@ inline void vec3_add(tm_vec3 v1, tm_vec3 v2, tm_vec3* dest){
     dest->z = v1.z + v2.z;
 }
 
+inline void vec3_add_s(tm_vec3 v1, float s, tm_vec3* dest){
+    dest->x = v1.x + s;
+    dest->y = v1.y + s;
+    dest->z = v1.z + s;
+}
+
 inline void vec3_sub(tm_vec3 v1, tm_vec3 v2, tm_vec3* dest){
     dest->x = v1.x - v2.x;
     dest->y = v1.y - v2.y;
@@ -76,6 +82,13 @@ inline void vec3_norm(tm_vec3* v){
     v->x /= w;
     v->y /= w;
     v->z /= w;
+}
+
+inline float vec3_distance(tm_vec3 v1, tm_vec3 v2) {
+    float dx = v1.x - v2.x;
+    float dy = v1.y - v2.y;
+    float dz = v1.z - v2.z;
+    return sqrt(dx * dx + dy * dy + dz * dz);
 }
 
 //////

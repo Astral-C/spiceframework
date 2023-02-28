@@ -13,6 +13,6 @@ void tm_ortho(float left, float right, float top, float bottom, float near, floa
 void tm_lookat(tm_vec3 position, tm_vec3 target, tm_vec3 up, tm_mat4 out);
 void tm_mat4_mult_vec4(tm_mat4 mat, tm_vec4 vec, tm_vec4* out);
 void tm_mat4_mult(tm_mat4 a, tm_mat4 b, tm_mat4 out);
-int tm_mat4_invert(tm_mat4 m, tm_mat4 out);
+void tm_mat4_invert(const tm_mat4 src, tm_mat4 dst);
 
 #endif

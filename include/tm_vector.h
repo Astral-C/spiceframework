@@ -44,6 +44,8 @@ float vec2_dot(tm_vec2 v1, tm_vec2 v2);
 
 void vec3_add(tm_vec3 v1, tm_vec3 v2, tm_vec3* dest);
 
+void vec3_add_s(tm_vec3 v1, float s, tm_vec3* dest);
+
 void vec3_sub(tm_vec3 v1, tm_vec3 v2, tm_vec3* dest);
 
 void vec3_mul(tm_vec3 v1, tm_vec3 v2, tm_vec3* dest);
@@ -56,6 +58,7 @@ float vec3_dot(tm_vec3 v1, tm_vec3 v2);
 
 void vec3_norm(tm_vec3* v);
 
+float vec3_distance(tm_vec3 v1, tm_vec3 v2);
 
 
 void vec4_add(tm_vec4 v1, tm_vec4 v2, tm_vec4* dest);

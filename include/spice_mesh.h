@@ -58,6 +58,7 @@ typedef struct {
     int32_t sprite_size;
     int32_t texture;
     int32_t size_fixed;
+    int32_t flip;
 } sp_point_sprite;
 
 typedef struct {

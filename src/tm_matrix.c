@@ -106,136 +106,66 @@ void tm_mat4_mult(tm_mat4 a, tm_mat4 b, tm_mat4 out){
 }
 
 
-int tm_mat4_invert(tm_mat4 m, tm_mat4 out){
-	tm_mat4 inv;
-	float det;
-	int i,j;
+void tm_mat4_invert(const tm_mat4 src, tm_mat4 dst) {
+    float tmp[12]; // temporary storage
+    float src_0, src_4, src_8, src_12;
+    float det; // determinant
 
-	tm_mat4_set(inv, 0, 0, tm_mat4_get(m, 1, 1)  * tm_mat4_get(m, 2, 2) * tm_mat4_get(m, 3, 3) - 
-			 tm_mat4_get(m, 1, 1)  * tm_mat4_get(m, 2, 3) * tm_mat4_get(m, 3, 2) - 
-			 tm_mat4_get(m, 2, 1)  * tm_mat4_get(m, 1, 2)  * tm_mat4_get(m, 3, 3) + 
-			 tm_mat4_get(m, 2, 1)  * tm_mat4_get(m, 1, 3)  * tm_mat4_get(m, 3, 2) +
-			 tm_mat4_get(m, 3, 1) * tm_mat4_get(m, 1, 2)  * tm_mat4_get(m, 2, 3) - 
-			 tm_mat4_get(m, 3, 1) * tm_mat4_get(m, 1, 3)  * tm_mat4_get(m, 2, 2));
+    // calculate pairs for first 8 elements (cofactors)
+    tmp[0]  = src[10] * src[15];
+    tmp[1]  = src[11] * src[14];
+    tmp[2]  = src[9] * src[15];
+    tmp[3]  = src[11] * src[13];
+    tmp[4]  = src[9] * src[14];
+    tmp[5]  = src[10] * src[13];
+    tmp[6]  = src[8] * src[15];
+    tmp[7]  = src[11] * src[12];
+    tmp[8]  = src[8] * src[14];
+    tmp[9]  = src[10] * src[12];
+    tmp[10] = src[8] * src[13];
+    tmp[11] = src[9] * src[12];
 
-	tm_mat4_set(inv, 1, 0, -tm_mat4_get(m, 1, 0)  * tm_mat4_get(m, 2, 2) * tm_mat4_get(m, 3, 3) + 
-			  tm_mat4_get(m, 1, 0)  * tm_mat4_get(m, 2, 3) * tm_mat4_get(m, 3, 2) + 
-			  tm_mat4_get(m, 2, 0)  * tm_mat4_get(m, 1, 2)  * tm_mat4_get(m, 3, 3) - 
-			  tm_mat4_get(m, 2, 0)  * tm_mat4_get(m, 1, 3)  * tm_mat4_get(m, 3, 2) - 
-			  tm_mat4_get(m, 3, 0) * tm_mat4_get(m, 1, 2)  * tm_mat4_get(m, 2, 3) + 
-			  tm_mat4_get(m, 3, 0) * tm_mat4_get(m, 1, 3)  * tm_mat4_get(m, 2, 2));
+    // calculate first 8 elements (cofactors)
+    dst[0]  = tmp[0]*src[5] + tmp[3]*src[6] + tmp[4]*src[7] - tmp[1]*src[5] - tmp[2]*src[6] - tmp[5]*src[7];
+    dst[1]  = tmp[1]*src[1] + tmp[6]*src[2] + tmp[9]*src[3] - tmp[0]*src[1] - tmp[7]*src[2] - tmp[8]*src[3];
+    dst[2]  = tmp[2]*src[9] + tmp[7]*src[10]+ tmp[10]*src[11]- tmp[3]*src[9] - tmp[6]*src[10]- tmp[11]*src[11];
+    dst[3]  = tmp[5]*src[13]+ tmp[8]*src[14]+ tmp[11]*src[15]- tmp[4]*src[13]- tmp[9]*src[14]- tmp[10]*src[15];
+    dst[4]  = tmp[1]*src[4] + tmp[2]*src[6] + tmp[5]*src[7] - tmp[0]*src[4] - tmp[3]*src[6] - tmp[4]*src[7];
+    dst[5]  = tmp[0]*src[0] + tmp[7]*src[2] + tmp[8]*src[3] - tmp[1]*src[0] - tmp[6]*src[2] - tmp[9]*src[3];
+    dst[6]  = tmp[3]*src[8] + tmp[6]*src[10]+ tmp[11]*src[11]- tmp[2]*src[8] - tmp[7]*src[10]- tmp[10]*src[11];
+    dst[7]  = tmp[4]*src[12]+ tmp[9]*src[14]+ tmp[10]*src[15]- tmp[5]*src[12]- tmp[8]*src[14]- tmp[11]*src[15];
 
-	tm_mat4_set(inv, 2, 0, tm_mat4_get(m, 1, 0)  * tm_mat4_get(m, 2, 1) * tm_mat4_get(m, 3, 3) - 
-			 tm_mat4_get(m, 1, 0)  * tm_mat4_get(m, 2, 3) * tm_mat4_get(m, 3, 1) - 
-			 tm_mat4_get(m, 2, 0)  * tm_mat4_get(m, 1, 1) * tm_mat4_get(m, 3, 3) + 
-			 tm_mat4_get(m, 2, 0)  * tm_mat4_get(m, 1, 3) * tm_mat4_get(m, 3, 1) + 
-			 tm_mat4_get(m, 3, 0) * tm_mat4_get(m, 1, 1) * tm_mat4_get(m, 2, 3) - 
-			 tm_mat4_get(m, 3, 0) * tm_mat4_get(m, 1, 3) * tm_mat4_get(m, 2, 1));
+    // calculate pairs for second 8 elements (cofactors)
+	tmp[0] = src[2] * src[7];
+	tmp[1] = src[3] * src[6];
+	tmp[2] = src[1] * src[7];
+	tmp[3] = src[3] * src[5];
+	tmp[4] = src[1] * src[6];
+	tmp[5] = src[2] * src[5];
+	tmp[6] = src[0] * src[7];
+	tmp[7] = src[3] * src[4];
+	tmp[8] = src[0] * src[6];
+	tmp[9] = src[2] * src[4];
+	tmp[10] = src[0] * src[5];
+	tmp[11] = src[1] * src[4];
 
-	tm_mat4_set(inv, 3, 0, -tm_mat4_get(m, 1, 0)  * tm_mat4_get(m, 2, 1) * tm_mat4_get(m, 3, 2) + 
-			   tm_mat4_get(m, 1, 0)  * tm_mat4_get(m, 2, 2) * tm_mat4_get(m, 3, 1) +
-			   tm_mat4_get(m, 2, 0)  * tm_mat4_get(m, 1, 1) * tm_mat4_get(m, 3, 2) - 
-			   tm_mat4_get(m, 2, 0)  * tm_mat4_get(m, 1, 2) * tm_mat4_get(m, 3, 1) - 
-			   tm_mat4_get(m, 3, 0) * tm_mat4_get(m, 1, 1) * tm_mat4_get(m, 2, 2) + 
-			   tm_mat4_get(m, 3, 0) * tm_mat4_get(m, 1, 2) * tm_mat4_get(m, 2, 1));
+	// calculate second 8 elements (cofactors)
+	dst[8]  = tmp[0]*src[13]+ tmp[3]*src[14]+ tmp[4]*src[15]- tmp[1]*src[13]- tmp[2]*src[14]- tmp[5]*src[15];
+	dst[9]  = tmp[1]*src[12]+ tmp[6]*src[14]+ tmp[9]*src[15]- tmp[0]*src[12]- tmp[7]*src[14]- tmp[8]*src[15];
+	dst[10] = tmp[2]*src[12]+ tmp[7]*src[13]+ tmp[10]*src[15]- tmp[3]*src[12]- tmp[6]*src[13]- tmp[11]*src[15];
+	dst[11] = tmp[5]*src[12]+ tmp[8]*src[13]+ tmp[11]*src[14]- tmp[4]*src[12]- tmp[9]*src[13]- tmp[10]*src[14];
+	dst[12] = tmp[2]*src[10]+ tmp[5]*src[11]+ tmp[1]*src[9] - tmp[4]*src[11]- tmp[0]*src[9] - tmp[3]*src[10];
+	dst[13] = tmp[8]*src[11]+ tmp[0]*src[8] + tmp[7]*src[10]- tmp[6]*src[10]- tmp[9]*src[11]- tmp[1]*src[8];
+	dst[14] = tmp[6]*src[9] + tmp[11]*src[11]+ tmp[3]*src[8] - tmp[10]*src[11]- tmp[2]*src[8] - tmp[7]*src[9];
+	dst[15] = tmp[10]*src[10]+ tmp[4]*src[8] + tmp[9]*src[9] - tmp[8]*src[10]- tmp[11]*src[9] - tmp[5]*src[8];
 
-	tm_mat4_set(inv, 0, 1, -tm_mat4_get(m, 0, 1)  * tm_mat4_get(m, 2, 2) * tm_mat4_get(m, 3, 3) + 
-			  tm_mat4_get(m, 0, 1)  * tm_mat4_get(m, 2, 3) * tm_mat4_get(m, 3, 2) + 
-			  tm_mat4_get(m, 2, 1)  * tm_mat4_get(m, 0, 2) * tm_mat4_get(m, 3, 3) - 
-			  tm_mat4_get(m, 2, 1)  * tm_mat4_get(m, 0, 3) * tm_mat4_get(m, 3, 2) - 
-			  tm_mat4_get(m, 3, 1) * tm_mat4_get(m, 0, 2) * tm_mat4_get(m, 2, 3) + 
-			  tm_mat4_get(m, 3, 1) * tm_mat4_get(m, 0, 3) * tm_mat4_get(m, 2, 2));
+	// calculate determinant
+	det = src[0] * dst[0] + src[1] * dst[4] + src[2] * dst[8] + src[3] * dst[12];
 
-	tm_mat4_set(inv, 1, 1, tm_mat4_get(m, 0, 0)  * tm_mat4_get(m, 2, 2) * tm_mat4_get(m, 3, 3) - 
-			 tm_mat4_get(m, 0, 0)  * tm_mat4_get(m, 2, 3) * tm_mat4_get(m, 3, 2) - 
-			 tm_mat4_get(m, 2, 0)  * tm_mat4_get(m, 0, 2) * tm_mat4_get(m, 3, 3) + 
-			 tm_mat4_get(m, 2, 0)  * tm_mat4_get(m, 0, 3) * tm_mat4_get(m, 3, 2) + 
-			 tm_mat4_get(m, 3, 0) * tm_mat4_get(m, 0, 2) * tm_mat4_get(m, 2, 3) - 
-			 tm_mat4_get(m, 3, 0) * tm_mat4_get(m, 0, 3) * tm_mat4_get(m, 2, 2));
+	// calculate matrix inverse
+	det = 1 / det;
 
-	tm_mat4_set(inv, 2, 1, -tm_mat4_get(m, 0, 0)  * tm_mat4_get(m, 2, 1) * tm_mat4_get(m, 3, 3) + 
-			  tm_mat4_get(m, 0, 0)  * tm_mat4_get(m, 2, 3) * tm_mat4_get(m, 3, 1) + 
-			  tm_mat4_get(m, 2, 0)  * tm_mat4_get(m, 0, 1) * tm_mat4_get(m, 3, 3) - 
-			  tm_mat4_get(m, 2, 0)  * tm_mat4_get(m, 0, 3) * tm_mat4_get(m, 3, 1) - 
-			  tm_mat4_get(m, 3, 0) * tm_mat4_get(m, 0, 1) * tm_mat4_get(m, 2, 3) + 
-			  tm_mat4_get(m, 3, 0) * tm_mat4_get(m, 0, 3) * tm_mat4_get(m, 2, 1));
-
-	tm_mat4_set(inv, 3, 1, tm_mat4_get(m, 0, 0)  * tm_mat4_get(m, 2, 1) * tm_mat4_get(m, 3, 2) - 
-			  tm_mat4_get(m, 0, 0)  * tm_mat4_get(m, 2, 2) * tm_mat4_get(m, 3, 1) - 
-			  tm_mat4_get(m, 2, 0)  * tm_mat4_get(m, 0, 1) * tm_mat4_get(m, 3, 2) + 
-			  tm_mat4_get(m, 2, 0)  * tm_mat4_get(m, 0, 2) * tm_mat4_get(m, 3, 1) + 
-			  tm_mat4_get(m, 3, 0) * tm_mat4_get(m, 0, 1) * tm_mat4_get(m, 2, 2) - 
-			  tm_mat4_get(m, 3, 0) * tm_mat4_get(m, 0, 2) * tm_mat4_get(m, 2, 1));
-
-	tm_mat4_set(inv, 0, 2, tm_mat4_get(m, 0, 1)  * tm_mat4_get(m, 1, 2) * tm_mat4_get(m, 3, 3) - 
-			 tm_mat4_get(m, 0, 1)  * tm_mat4_get(m, 1, 3) * tm_mat4_get(m, 3, 2) - 
-			 tm_mat4_get(m, 1, 1)  * tm_mat4_get(m, 0, 2) * tm_mat4_get(m, 3, 3) + 
-			 tm_mat4_get(m, 1, 1)  * tm_mat4_get(m, 0, 3) * tm_mat4_get(m, 3, 2) + 
-			 tm_mat4_get(m, 3, 1) * tm_mat4_get(m, 0, 2) * tm_mat4_get(m, 1, 3) - 
-			 tm_mat4_get(m, 3, 1) * tm_mat4_get(m, 0, 3) * tm_mat4_get(m, 1, 2));
-
-	tm_mat4_set(inv, 1, 2, -tm_mat4_get(m, 0, 0)  * tm_mat4_get(m, 1, 2) * tm_mat4_get(m, 3, 3) + 
-			  tm_mat4_get(m, 0, 0)  * tm_mat4_get(m, 1, 3) * tm_mat4_get(m, 3, 2) + 
-			  tm_mat4_get(m, 1, 0)  * tm_mat4_get(m, 0, 2) * tm_mat4_get(m, 3, 3) - 
-			  tm_mat4_get(m, 1, 0)  * tm_mat4_get(m, 0, 3) * tm_mat4_get(m, 3, 2) - 
-			  tm_mat4_get(m, 3, 0) * tm_mat4_get(m, 0, 2) * tm_mat4_get(m, 1, 3) + 
-			  tm_mat4_get(m, 3, 0) * tm_mat4_get(m, 0, 3) * tm_mat4_get(m, 1, 2));
-
-	tm_mat4_set(inv, 2, 2, tm_mat4_get(m, 0, 0)  * tm_mat4_get(m, 1, 1) * tm_mat4_get(m, 3, 3) - 
-			  tm_mat4_get(m, 0, 0)  * tm_mat4_get(m, 1, 3) * tm_mat4_get(m, 3, 1) - 
-			  tm_mat4_get(m, 1, 0)  * tm_mat4_get(m, 0, 1) * tm_mat4_get(m, 3, 3) + 
-			  tm_mat4_get(m, 1, 0)  * tm_mat4_get(m, 0, 3) * tm_mat4_get(m, 3, 1) + 
-			  tm_mat4_get(m, 3, 0) * tm_mat4_get(m, 0, 1) * tm_mat4_get(m, 1, 3) - 
-			  tm_mat4_get(m, 3, 0) * tm_mat4_get(m, 0, 3) * tm_mat4_get(m, 1, 1));
-
-	tm_mat4_set(inv, 3, 2, -tm_mat4_get(m, 0, 0)  * tm_mat4_get(m, 1, 1) * tm_mat4_get(m, 3, 2) + 
-			   tm_mat4_get(m, 0, 0)  * tm_mat4_get(m, 1, 2) * tm_mat4_get(m, 3, 1) + 
-			   tm_mat4_get(m, 1, 0)  * tm_mat4_get(m, 0, 1) * tm_mat4_get(m, 3, 2) - 
-			   tm_mat4_get(m, 1, 0)  * tm_mat4_get(m, 0, 2) * tm_mat4_get(m, 3, 1) - 
-			   tm_mat4_get(m, 3, 0) * tm_mat4_get(m, 0, 1) * tm_mat4_get(m, 1, 2) + 
-			   tm_mat4_get(m, 3, 0) * tm_mat4_get(m, 0, 2) * tm_mat4_get(m, 1, 1));
-
-	tm_mat4_set(inv, 0, 3, -tm_mat4_get(m, 0, 1) * tm_mat4_get(m, 1, 2) * tm_mat4_get(m, 2, 3) + 
-			  tm_mat4_get(m, 0, 1) * tm_mat4_get(m, 1, 3) * tm_mat4_get(m, 2, 2) + 
-			  tm_mat4_get(m, 1, 1) * tm_mat4_get(m, 0, 2) * tm_mat4_get(m, 2, 3) - 
-			  tm_mat4_get(m, 1, 1) * tm_mat4_get(m, 0, 3) * tm_mat4_get(m, 2, 2) - 
-			  tm_mat4_get(m, 2, 1) * tm_mat4_get(m, 0, 2) * tm_mat4_get(m, 1, 3) + 
-			  tm_mat4_get(m, 2, 1) * tm_mat4_get(m, 0, 3) * tm_mat4_get(m, 1, 2));
-
-	tm_mat4_set(inv, 1, 3, tm_mat4_get(m, 0, 0) * tm_mat4_get(m, 1, 2) * tm_mat4_get(m, 2, 3) - 
-			 tm_mat4_get(m, 0, 0) * tm_mat4_get(m, 1, 3) * tm_mat4_get(m, 2, 2) - 
-			 tm_mat4_get(m, 1, 0) * tm_mat4_get(m, 0, 2) * tm_mat4_get(m, 2, 3) + 
-			 tm_mat4_get(m, 1, 0) * tm_mat4_get(m, 0, 3) * tm_mat4_get(m, 2, 2) + 
-			 tm_mat4_get(m, 2, 0) * tm_mat4_get(m, 0, 2) * tm_mat4_get(m, 1, 3) - 
-			 tm_mat4_get(m, 2, 0) * tm_mat4_get(m, 0, 3) * tm_mat4_get(m, 1, 2));
-
-	tm_mat4_set(inv, 2, 3,-tm_mat4_get(m, 0, 0) * tm_mat4_get(m, 1, 1) * tm_mat4_get(m, 2, 3) + 
-			   tm_mat4_get(m, 0, 0) * tm_mat4_get(m, 1, 3) * tm_mat4_get(m, 2, 1) + 
-			   tm_mat4_get(m, 1, 0) * tm_mat4_get(m, 0, 1) * tm_mat4_get(m, 2, 3) - 
-			   tm_mat4_get(m, 1, 0) * tm_mat4_get(m, 0, 3) * tm_mat4_get(m, 2, 1) - 
-			   tm_mat4_get(m, 2, 0) * tm_mat4_get(m, 0, 1) * tm_mat4_get(m, 1, 3) + 
-			   tm_mat4_get(m, 2, 0) * tm_mat4_get(m, 0, 3) * tm_mat4_get(m, 1, 1));
-
-	tm_mat4_set(inv, 3, 3, tm_mat4_get(m, 0, 0) * tm_mat4_get(m, 1, 1) * tm_mat4_get(m, 2, 2) - 
-			  tm_mat4_get(m, 0, 0) * tm_mat4_get(m, 1, 2) * tm_mat4_get(m, 2, 1) - 
-			  tm_mat4_get(m, 1, 0) * tm_mat4_get(m, 0, 1) * tm_mat4_get(m, 2, 2) + 
-			  tm_mat4_get(m, 1, 0) * tm_mat4_get(m, 0, 2) * tm_mat4_get(m, 2, 1) + 
-			  tm_mat4_get(m, 2, 0) * tm_mat4_get(m, 0, 1) * tm_mat4_get(m, 1, 2) - 
-			  tm_mat4_get(m, 2, 0) * tm_mat4_get(m, 0, 2) * tm_mat4_get(m, 1, 1));
-
-	det = tm_mat4_get(m, 0, 0) * tm_mat4_get(inv, 0, 0) + tm_mat4_get(m, 0, 1) * tm_mat4_get(inv, 1,0) + tm_mat4_get(m, 0, 2) * tm_mat4_get(inv, 2, 0) + tm_mat4_get(m, 0, 3) * tm_mat4_get(inv, 3, 0);
-
-	if (det == 0)
-		return 0;
-
-	det = 1.0 / det;
-
-	for (j = 0; j < 3; j++)
-	{
-		for (i = 0; i < 3; i++)
-		{
-			tm_mat4_set(out, j, i, tm_mat4_get(inv, j, i) * det);
-		}
+	for (int i = 0; i < 16; i++) {
+		dst[i] *= det;
 	}
-	return 1;
 }

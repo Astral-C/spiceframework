@@ -175,3 +175,28 @@ sp_status spiceAABBCollide(sp_rect* r1, sp_rect* r2){
         return SP_FAIL;
     }
 }
+
+sp_status spiceSphereCollideRay(tm_vec3 ray_origin, tm_vec3 ray_dir, tm_vec3 sphere_center, float sphere_radius){
+    tm_vec3 ray_origin_to_sphere_center;
+
+    vec3_sub(ray_origin, sphere_center, &ray_origin_to_sphere_center);
+
+    float a = vec3_dot(ray_dir, ray_dir);
+    float b = 2.0f * vec3_dot(ray_dir, ray_origin_to_sphere_center);
+    float c = vec3_dot(ray_origin_to_sphere_center, ray_origin_to_sphere_center) - sphere_radius * sphere_radius;
+
+    float discriminant = b * b - 4.0f * a * c;
+
+    if(discriminant < 0.0f){
+        return SP_FAIL;
+    }
+
+    float t1 = (-b - sqrt(discriminant) / (2.0f * a));
+    float t2 = (-b + sqrt(discriminant) / (2.0f * a));
+
+    if(t1 >= 0.0f || t2 >= 0.0f){
+        return SP_SUCCESS;
+    }
+
+    return SP_FAIL;
+}
