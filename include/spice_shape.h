@@ -14,6 +14,10 @@ typedef struct SPICE_RECT_S {
     sp_vec2 size;
 } sp_rect;
 
+typedef struct {
+    sp_vec3 min, max;
+} sp_bounding_box;
+
 void spiceGraphicsDrawPolygon(sp_convex_polygon* polygon, sp_vec4 color, uint8_t filled);
 void spiceGraphicsDrawRect(sp_rect* rect, sp_vec4 color, uint8_t filled);
 

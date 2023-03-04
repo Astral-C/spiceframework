@@ -8,11 +8,13 @@
 #define lerpv2(d, a, b, t) d.x = lerpf(a.x, b.x, t); d.y = lerpf(a.x, b.y, t);
 #define lerpv3(d, a, b, t) d.x = lerpf(a.x, b.x, t); d.y = lerpf(a.x, b.y, t); d.z = lerpf(a.z, b.z, t);
 
+#define max(a, b) a > b ? a : b
+#define min(a, b) a < b ? a : b
+
 typedef tm_vec2 sp_vec2;
 
 typedef tm_vec3 sp_vec3;
 
 typedef tm_vec4 sp_vec4;
-
 
 #endif

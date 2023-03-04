@@ -62,7 +62,7 @@ void spiceGraphicsInit(char* window_name, int width, int height, int target_fps,
         nk_sdl_font_stash_end();
     }
 
-    SDL_ShowCursor(0);
+    //SDL_ShowCursor(0);
 
     atexit(spiceGraphicsClose);
 }
