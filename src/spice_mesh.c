@@ -12,39 +12,49 @@ const char* default_vtx_shader_source = "#version 330\n\
     #extension GL_ARB_separate_shader_objects : enable\n\
     \
     uniform mat4 gpu_ModelViewProjectionMatrix;\n\
+    uniform mat4 gpu_transform;\n\
     \
     layout(location = 0) in vec3 inPosition;\n\
     layout(location = 1) in vec3 inNormal;\n\
     layout(location = 2) in vec2 inTexCoord;\n\
     layout(location = 3) in vec4 inColor;\n\
+    layout(location = 4) in vec2 inTexCoordScale;\n\
+    layout(location = 5) in int tex;\n\
     \
     layout(location = 0) out vec3 fragNormal;\n\
     layout(location = 1) out vec2 fragTexCoord;\n\
     layout(location = 2) out vec4 fragColori;\n\
+    layout(location = 3) out vec2 fragTexCoordScale;\n\
+    layout(location = 4) flat out int fragTextureIdx;\n\
     \
     void main()\n\
     {\
-        gl_Position = gpu_ModelViewProjectionMatrix * vec4(inPosition, 1.0);\n\
+        gl_Position = gpu_ModelViewProjectionMatrix * gpu_transform * vec4(inPosition, 1.0);\n\
         fragNormal = normalize(inNormal.xyz);\n\
         fragColori = inColor;\n\
         fragTexCoord = inTexCoord;\n\
+        fragTexCoordScale = inTexCoordScale;\n\
+        fragTextureIdx = tex;\n\
     }\
 ";
 
 const char* default_frg_shader_source = "#version 330\n\
     #extension GL_ARB_separate_shader_objects : enable\n\
     \
-    uniform sampler2D texSampler;\n\
+    uniform sampler2DArray texSampler;\n\
     layout(location = 0) in vec3 fragNormal;\n\
     layout(location = 1) in vec2 fragTexCoord;\n\
     layout(location = 2) in vec4 fragColori;\n\
+    layout(location = 3) in vec2 fragTexCoordScale;\n\
+    layout(location = 4) flat in int fragTextureIdx;\n\
     \n\
     layout(location = 0) out vec4 outColor;\n\
     \
     void main()\n\
     {\n\
-        vec4 baseColor = texture(texSampler, vec2(fragTexCoord.x, -fragTexCoord.y));\n\
+        vec4 baseColor = texture(texSampler, vec3(mod(fragTexCoord.x, fragTexCoordScale.x), mod(fragTexCoord.y, fragTexCoordScale.y), fragTextureIdx));\n\
         outColor = baseColor * fragColori;//vec4(1.0, 1.0, 1.0, 1.0);\n\
+        if(baseColor.a < 1.0 / 255.0) discard;\n\
     }\
 ";
 
@@ -115,6 +125,7 @@ sp_mesh* spiceMeshNewDynamic(uint32_t max_vertices){
             mesh->_in_use = 1;
             mesh->_dynamic = 1;
             new_mesh = mesh;
+            tm_mat4_identity(mesh->transform);
             break;
         } 
     }
@@ -158,6 +169,7 @@ sp_mesh* spiceMeshLoadCinnamodel(char* model_path){
             mesh->_in_use = 1;
             mesh->_dynamic = 0;
             new_mesh = mesh;
+            tm_mat4_identity(mesh->transform);
             break;
         } 
     }
@@ -175,37 +187,54 @@ sp_mesh* spiceMeshLoadCinnamodel(char* model_path){
         return NULL;
     }
 
-    uint32_t mesh_count = 0;
+    uint32_t mesh_count, texture_offset, texture_count, max_w, max_h;
 
     spice_info("Reading Mesh Count\n");
 
+    fread(&texture_offset, sizeof(uint32_t), 1, model);
     fread(&mesh_count, sizeof(uint32_t), 1, model);
 
-    spice_info("Read Mesh Count %d\nCollecting vertex count...\n", mesh_count);
+    spice_info("Read Mesh Count %d\nCollecting vertex and index count...\n", mesh_count);
 
-    for (size_t i = 0; i < mesh_count; i++){
-        uint32_t vtx_count = 0;
-        fread(&vtx_count, sizeof(uint32_t), 1, model);
-        spice_info("Mesh %d has %d vertices\n", i, vtx_count);
-        new_mesh->vertex_count += vtx_count;
-        fseek(model, sizeof(sp_vertex) * vtx_count, SEEK_CUR);
-    }
+    fread(&new_mesh->index_count, sizeof(uint32_t), 1, model);
+    fread(&new_mesh->vertex_count, sizeof(uint32_t), 1, model);
+    spice_info("Mesh has %d indices and %d vertices\n", new_mesh->index_count, new_mesh->vertex_count);
 
-    rewind(model);
-    spice_info("Allocating vertex buffer\n",NULL);
+    spice_info("Allocating vertex  and indexbuffer\n",NULL);
     new_mesh->vertices = malloc(sizeof(sp_vertex) * new_mesh->vertex_count);
+    new_mesh->indices = malloc(sizeof(uint32_t) * new_mesh->index_count);
     spice_info("Finished allocating vertex buffer\n",NULL);
 
-    fread(&mesh_count, sizeof(uint32_t), 1, model);
-    uint32_t vtx_offset = 0;
-    for (size_t i = 0; i < mesh_count; i++){
-        spice_info("Reading Vertex data for mesh %d\n", i);
-        uint32_t vtx_count = 0;
-        fread(&vtx_count, sizeof(uint32_t), 1, model);
-        fread(new_mesh->vertices + vtx_offset, sizeof(sp_vertex), vtx_count, model);
-        vtx_offset += vtx_count;
-    }
+    fread(new_mesh->indices, sizeof(uint32_t), new_mesh->index_count, model);
+    fread(new_mesh->vertices, sizeof(sp_vertex), new_mesh->vertex_count, model);
 
+    fseek(model, texture_offset, 0);
+    fread(&texture_count, sizeof(uint32_t), 1, model);
+    fread(&max_w, sizeof(uint32_t), 1, model);
+    fread(&max_h, sizeof(uint32_t), 1, model);
+    spice_info("Model has %u Textures, max width is %u max height is %u\n", texture_count, max_w, max_h);
+
+    new_mesh->texture = spiceTextureArrayInit(texture_count, max_w, max_h);
+
+    for (size_t i = 0; i < texture_count; i++){
+        uint32_t data_size, w, h;
+
+        fread(&data_size, sizeof(uint32_t), 1, model);
+        fread(&w, sizeof(uint32_t), 1, model);
+        fread(&h, sizeof(uint32_t), 1, model);
+
+        spice_info("Reading %u bytes of image data for texture %ux%u\n", data_size, w, h);
+
+        unsigned char* img_data = malloc(sizeof(uint32_t) * max_w * max_h);
+        memset(img_data, 0, sizeof(uint32_t) * max_w * max_h);
+
+        fread(img_data, data_size, 1, model);
+
+        spiceTextureArrayLoadData(new_mesh->texture, w, h, img_data, i);
+
+        free(img_data);
+    }
+    
 
     glGenVertexArrays(1, &new_mesh->_vao_id);
     glBindVertexArray(new_mesh->_vao_id);
@@ -213,6 +242,10 @@ sp_mesh* spiceMeshLoadCinnamodel(char* model_path){
     glGenBuffers(1, &new_mesh->_vbo_id);
     glBindBuffer(GL_ARRAY_BUFFER, new_mesh->_vbo_id);
     glBufferData(GL_ARRAY_BUFFER, sizeof(sp_vertex) * new_mesh->vertex_count, new_mesh->vertices, GL_STATIC_DRAW);
+
+    glGenBuffers(1, &new_mesh->_ebo_id);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, new_mesh->_ebo_id);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t) * new_mesh->index_count, new_mesh->indices, GL_STATIC_DRAW);
 
 
     glEnableVertexAttribArray(0);
@@ -223,7 +256,12 @@ sp_mesh* spiceMeshLoadCinnamodel(char* model_path){
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(sp_vertex), (void*)offsetof(sp_vertex, texcoord));
     glEnableVertexAttribArray(3);
     glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(sp_vertex), (void*)offsetof(sp_vertex, color));
+    glEnableVertexAttribArray(4);
+    glVertexAttribPointer(4, 2, GL_FLOAT, GL_FALSE, sizeof(sp_vertex), (void*)offsetof(sp_vertex, texcoord_scale));
+    glEnableVertexAttribArray(5);
+    glVertexAttribIPointer(5, 1, GL_UNSIGNED_INT, sizeof(sp_vertex), (void*)offsetof(sp_vertex, texture));
 
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
@@ -278,7 +316,6 @@ void spiceMeshManagerDraw(){
 
     spiceOrbitCamGetMVP(model, mvp);
 
-
     glUseProgram(0);
     glBindVertexArray(0);
 
@@ -288,15 +325,17 @@ void spiceMeshManagerDraw(){
         if(!mesh->_in_use) continue;
         if(mesh->texture != NULL){
             spiceTextureBind(mesh->texture, GL_TEXTURE0);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
         }
         
         glBindVertexArray(mesh->_vao_id);
-
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->_ebo_id);
+    
         glUniformMatrix4fv(mesh_manager._mvp_loc, 1, 0, mvp);
-        glDrawArrays(GL_TRIANGLES, 0, mesh->vertex_count);
+        glUniformMatrix4fv(glGetUniformLocation(mesh_manager._default_shader, "gpu_transform"), 1, 0, mesh->transform);
+        //glDrawArrays(GL_TRIANGLES, 0, mesh->vertex_count);
+        glDrawElements(GL_TRIANGLES, mesh->index_count, GL_UNSIGNED_INT, NULL);
         
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
     }
 

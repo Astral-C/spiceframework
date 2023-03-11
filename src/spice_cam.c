@@ -64,7 +64,6 @@ void spiceOrbitCamRaycast(float mouse_x, float mouse_y, float screen_width, floa
     direction_out->z = ray_world.z;
 
     vec3_norm(direction_out);
-
 }
 
 tm_orbit_camera* spiceGetOrbitCam(){

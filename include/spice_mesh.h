@@ -18,6 +18,8 @@ typedef struct {
     sp_vec3 normal;
     sp_vec2 texcoord;
     sp_vec4 color;
+    sp_vec2 texcoord_scale;
+    uint32_t texture;
 } sp_vertex;
 
 typedef struct {
@@ -25,6 +27,7 @@ typedef struct {
     uint8_t _dynamic;
 
     GLuint _vao_id;
+    GLuint _ebo_id;
     GLuint _vbo_id;
 
     GLuint _instance_id;
@@ -32,6 +35,9 @@ typedef struct {
     uint32_t _instance_count;
 
     uint32_t vertex_count;
+    uint32_t index_count;
+
+    uint32_t* indices;
     sp_vertex* vertices;
     sp_texture* texture;
     

@@ -75,6 +75,15 @@ void spiceTextureArrayLoad(sp_texture* texture, char* path, char idx){
     stbi_image_free(img);
 }
 
+void spiceTextureArrayLoadData(sp_texture* texture, int w, int h, char* img, char idx){
+    if(texture == NULL) return;
+
+    if(idx > texture->image_count) return;
+    glBindTexture(GL_TEXTURE_2D_ARRAY, texture->texture_id);
+    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, idx, w, h, 1, GL_RGBA, GL_UNSIGNED_BYTE, img);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+}
+
 sp_texture* spiceTextureLoadCubeMap(char* paths[6]){
     //TODO: include all faces in this hash calc?
     uint64_t id = spHash(paths[0], strlen(paths[0])) + spHash(paths[1], strlen(paths[1])) + spHash(paths[2], strlen(paths[2]));

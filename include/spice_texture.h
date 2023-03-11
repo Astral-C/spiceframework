@@ -27,6 +27,8 @@ sp_texture* spiceTextureArrayInit(uint32_t max_textures, uint32_t max_width, uin
 
 void spiceTextureArrayLoad(sp_texture* texture, char* path, char idx);
 
+void spiceTextureArrayLoadData(sp_texture* texture, int w, int h, char* img, char idx);
+
 sp_texture* spiceTextureLoadCubeMap(char* paths[6]);
 
 sp_texture* spiceTexture2DLoad(char* path);
