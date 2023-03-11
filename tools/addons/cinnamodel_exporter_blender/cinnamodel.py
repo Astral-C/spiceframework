@@ -112,7 +112,6 @@ class Cinnamodel():
             if(mesh.vertex_colors.active is not None):
                 colors = mesh.vertex_colors.active.data
 
-            model_out.writeUInt32(len(mesh.loop_triangles)*3)
             for triangle in mesh.loop_triangles:
                 for idx in range(3):
                     loop = mesh.loops[triangle.loops[idx]]

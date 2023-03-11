@@ -58,3 +58,4 @@ test/include/*.h
 test
 .vscode
 .vscode/*
+tools/addons/cinnamodel_exporter_blender/__pycache__/*
