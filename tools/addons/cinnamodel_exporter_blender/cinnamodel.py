@@ -6,6 +6,8 @@ from bStream import *
 from bpy_extras.io_utils import ImportHelper
 import numpy as np
 
+import math
+
 class CinnaVertex():
     def __init__(self, buffer):
         self.position = [buffer.readFloat(), buffer.readFloat(), buffer.readFloat()]
@@ -20,8 +22,8 @@ class CinnaVertex():
 class Cinnamodel():
     def ImportModel(pth):
         buffer = bStream(path=pth)
-        buffer.endian = "<"
-
+        buffer.endian = '<'
+        
         mesh_count = buffer.readUInt32()
 
         for mesh_idx in range(0, mesh_count):
@@ -64,24 +66,48 @@ class Cinnamodel():
         meshes = []
         materials = []
 
+        vertices = []
+        textures = []
+        texture_data = []
+
+        indices = []
+
+        max_width = 0
+        max_height = 0
+
         for child in bpy.context.scene.objects:
             if(child.type == 'MESH'):
                 bpy.context.view_layer.objects.active = child
                 if(child not in meshes):
                     meshes.append(child)
-                if(child.active_material not in materials):
-                    materials.append(child.active_material)
+                
+                for texture in child.to_mesh().materials:
+                    if(not(texture.node_tree.nodes.get("Principled BSDF").inputs[0].links[0].from_node.image.filepath.split("/")[-1] in textures)):
+                        textures.append(texture.node_tree.nodes.get("Principled BSDF").inputs[0].links[0].from_node.image.filepath.split("/")[-1])
+                        texture_data.append(texture.node_tree.nodes.get("Principled BSDF").inputs[0].links[0].from_node.image)
+                        #image.size[0] image.size[1]
 
+                        w = texture.node_tree.nodes.get("Principled BSDF").inputs[0].links[0].from_node.image.size[0];
+                        h = texture.node_tree.nodes.get("Principled BSDF").inputs[0].links[0].from_node.image.size[1]
+
+                        if(w > max_width):
+                            max_width = w
+
+                        if(h > max_height):
+                            max_height = h
+
+        print(textures)
 
         model_out = bStream(path=pth)
         model_out.endian = '<'
-
+        
+        model_out.writeUInt32(0)
         model_out.writeUInt32(len(meshes))
-
+        
         for mesh_obj in meshes:
             mesh = mesh_obj.to_mesh()
 
-            uv_map = mesh.uv_layers["UVMap"].data
+            uv_map = mesh.uv_layers[0].data
             colors = None
             if(mesh.vertex_colors.active is not None):
                 colors = mesh.vertex_colors.active.data
@@ -95,83 +121,87 @@ class Cinnamodel():
                     uv = uv_map[triangle.loops[idx]].uv
                     normal = triangle.normal
                     color = (1.0, 1.0, 1.0, 1.0)
+                    texture = textures.index(mesh_obj.active_material.node_tree.nodes.get("Principled BSDF").inputs[0].links[0].from_node.image.filepath.split("/")[-1])
+
+                    rw = mesh_obj.active_material.node_tree.nodes.get("Principled BSDF").inputs[0].links[0].from_node.image.size[0] / max_width
+                    rh = mesh_obj.active_material.node_tree.nodes.get("Principled BSDF").inputs[0].links[0].from_node.image.size[1] / max_height
 
                     if(colors is not None):
                         color = colors[triangle.loops[idx]].color
 
-                    model_out.writeFloat(pos[0])
-                    model_out.writeFloat(pos[2])
-                    model_out.writeFloat(-pos[1])
+                    vtx = {
+                        "position" : [pos[0], pos[1], pos[2]],
+                        "normal" : [normal[0], normal[1], normal[2]],
+                        "uv" : [
+                            uv[0] * rw,
+                            uv[1] * rh
+                        ],
+                        "color" : color,
+                        "texture" : texture,
+                        "scale_uv" : [rw, rh]
+                    }
 
-                    model_out.writeFloat(normal[0])
-                    model_out.writeFloat(normal[2])
-                    model_out.writeFloat(-normal[1])
-                    
-                    model_out.writeFloat(uv[0])
-                    model_out.writeFloat(uv[1])
+                    if(vtx in vertices):
+                        indices.append(vertices.index(vtx))
+                    else:
+                        indices.append(len(vertices))
+                        vertices.append(vtx)
 
-                    model_out.writeFloat(color[0])
-                    model_out.writeFloat(color[1])
-                    model_out.writeFloat(color[2])
-                    model_out.writeFloat(color[3])
+        model_out.writeUInt32(len(indices))
+        model_out.writeUInt32(len(vertices))
 
+        for index in indices:
+            model_out.writeUInt32(index)
+
+        for vertex in vertices:
+            model_out.writeFloat(vertex['position'][0])
+            model_out.writeFloat(vertex['position'][2])
+            model_out.writeFloat(vertex['position'][1])
+
+            model_out.writeFloat(-vertex['normal'][0])
+            model_out.writeFloat(-vertex['normal'][1])
+            model_out.writeFloat(vertex['normal'][2])
+                        
+            model_out.writeFloat(vertex['uv'][0])
+            model_out.writeFloat(vertex['uv'][1])
+
+            model_out.writeFloat(vertex['color'][0])
+            model_out.writeFloat(vertex['color'][1])
+            model_out.writeFloat(vertex['color'][2])
+            model_out.writeFloat(vertex['color'][3])
+
+            model_out.writeFloat(vertex['scale_uv'][0])
+            model_out.writeFloat(vertex['scale_uv'][1])
+            
+            model_out.writeUInt32(vertex['texture'])
+
+        texture_offset = model_out.tell()
+
+        model_out.seek(0)
+        model_out.writeUInt32(texture_offset)
+        model_out.seek(texture_offset)
+
+        model_out.writeUInt32(len(textures))
+        model_out.writeUInt32(max_width)
+        model_out.writeUInt32(max_height)
+
+        for texture in texture_data:
+            print(f"Writing Texture {texture.name} {texture.size[0]}x{texture.size[1]}")
+            model_out.writeUInt32(texture.size[0] * texture.size[1] * 4)
+            model_out.writeUInt32(texture.size[0])
+            model_out.writeUInt32(texture.size[1])
+
+            for pxl in range(0, len(texture.pixels), 4):
+                print(f"Progress {pxl // 4}/{len(texture.pixels) // 4}, alpha is {int(texture.pixels[pxl + 3] * 255)}", end="\r")
+                model_out.writeUInt8(int(texture.pixels[pxl] * 255))
+                model_out.writeUInt8(int(texture.pixels[pxl + 1] * 255))
+                model_out.writeUInt8(int(texture.pixels[pxl + 2] * 255))
+                a = texture.pixels[pxl + 3] * 255
+                if(a <= 255):
+                    model_out.writeUInt8(int(a))
+                else:
+                    model_out.writeUInt8(0)
+
+            pass
 
         model_out.close()
-
-    def GeneratePrimitives(mesh, buffer, mesh_data):
-        uv_map = mesh.uv_layers["UVMap"].data
-        colors = None
-        if "Colors" in mesh.color_layers.keys():
-            colors = mesh.color_layers["Color"].data
-    
-        buffer.writeUInt16(len(mesh.loop_triangles))
-        for triangle in mesh.loop_triangles:
-            for idx in range(3):
-                loop = mesh.loops[triangle.loops[idx]]
-    
-    
-                pos = mesh.vertices[loop.vertex_index].co
-                uv = uv_map[triangle.loops[idx]].uv
-                normal = triangle.normal
-                color = (0.0, 0.0, 0.0, 0.0)
-
-                if(colors is not None):
-                    color = colors[triangle.loops[idx]].color
-
-                pi = -1
-                uvi = -1
-                noi = -1
-                coi = -1
-
-                if(uv in mesh_data['uv']):
-                    uvi = mesh_data['uv'].index(uv)
-                else:
-                    uvi = len(mesh_data['uv'])
-                    mesh_data['uv'].append(uv)
-        
-                
-                if(pos in mesh_data['position']):
-                    pi = mesh_data['position'].index(pos)
-                else:
-                    pi = len(mesh_data['position'])
-                    mesh_data['position'].append(pos)
-    
-                
-                if(normal in mesh_data['normal']):
-                    noi = mesh_data['normal'].index(normal)
-    
-                else:
-                    noi = len(mesh_data['normal'])
-                    mesh_data['normal'].append(normal)
-    
-                
-                if(color in mesh_data['color']):
-                    coi = mesh_data['color'].index(color)
-                else:
-                    coi = len(mesh_data['color'])
-                    mesh_data['color'].append(color)
-    
-                buffer.writeUInt16(pi)  # vertex
-                buffer.writeUInt16(noi) # normal
-                buffer.writeUInt16(uvi) # uv
-                buffer.writeUInt16(coi) # color
