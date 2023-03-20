@@ -414,6 +414,7 @@ sp_point_sprite* spicePointSpriteNew(){
 
 void spicePointSpriteFree(sp_point_sprite* sprite){
     sprite->_in_use = 0;
+    memset(sprite, 0, sizeof(sp_point_sprite));
 }
 
 void spicePointSpriteDraw(){

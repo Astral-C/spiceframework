@@ -83,7 +83,7 @@ class Cinnamodel():
                 
                 for texture in child.to_mesh().materials:
                     if(not(texture.node_tree.nodes.get("Principled BSDF").inputs[0].links[0].from_node.image.filepath.split("/")[-1] in textures)):
-                        textures.append(texture.node_tree.nodes.get("Principled BSDF").inputs[0].links[0].from_node.image.filepath.split("/")[-1])
+                        textures.append(texture.node_tree.nodes.get("Principled BSDF").inputs[0].links[0].from_node.image)
                         texture_data.append(texture.node_tree.nodes.get("Principled BSDF").inputs[0].links[0].from_node.image)
                         #image.size[0] image.size[1]
 
@@ -120,7 +120,7 @@ class Cinnamodel():
                     uv = uv_map[triangle.loops[idx]].uv
                     normal = triangle.normal
                     color = (1.0, 1.0, 1.0, 1.0)
-                    texture = textures.index(mesh_obj.active_material.node_tree.nodes.get("Principled BSDF").inputs[0].links[0].from_node.image.filepath.split("/")[-1])
+                    texture = textures.index(mesh_obj.active_material.node_tree.nodes.get("Principled BSDF").inputs[0].links[0].from_node.image)
 
                     rw = mesh_obj.active_material.node_tree.nodes.get("Principled BSDF").inputs[0].links[0].from_node.image.size[0] / max_width
                     rh = mesh_obj.active_material.node_tree.nodes.get("Principled BSDF").inputs[0].links[0].from_node.image.size[1] / max_height

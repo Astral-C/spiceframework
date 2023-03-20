@@ -39,6 +39,8 @@ sp_sprite* spiceLoadSprite(char* path){
 
     found_sprite->texture = spiceTexture2DLoad(path);
     found_sprite->image = nk_image_id(found_sprite->texture->texture_id);
+    found_sprite->frame_w = found_sprite->texture->width;
+    found_sprite->frame_w = found_sprite->texture->height;
     found_sprite->_ref_count++;
 
     return found_sprite;
