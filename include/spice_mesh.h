@@ -108,6 +108,8 @@ void spicePointSpritesInit(uint32_t ps_max, uint32_t texture_count, uint32_t max
 
 void spicePointSpriteSetTexture(uint8_t idx, char* img);
 
+void spicePointSpriteSetTextureFromMemory(uint8_t idx, char* data, size_t size);
+
 sp_point_sprite* spicePointSpriteNew();
 
 void spicePointSpriteFree(sp_point_sprite* sprite);

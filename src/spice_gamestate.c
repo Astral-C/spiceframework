@@ -26,8 +26,10 @@ void spiceGamestateInit(int state_count){
 void spiceGamestateChange(int id, int transition){
     if(SP_GAMESTATE_USER + id >= state_manager.state_count) return;
     if(transition == 0){
+        if(state_manager.current->exit) state_manager.current->exit();
         state_manager.previous = state_manager.current;
         state_manager.current = &state_manager.game_states[SP_GAMESTATE_USER + id];
+        if(state_manager.current->enter) state_manager.current->enter();
     } else {
         state_manager.current_transition_time = 0;
         state_manager.previous = state_manager.current;
@@ -48,9 +50,10 @@ int spiceGamestateGet(){
     return state_manager.current->id;
 }
 
-void spiceGamestateRegister(int id, void (*update)(), void (*draw)()){
+void spiceGamestateRegister(int id, void (*update)(), void (*draw)(), void (*enter)(), void (*exit)()){
     if(SP_GAMESTATE_USER + id >= state_manager.state_count) return;
-    state_manager.game_states[SP_GAMESTATE_USER + id] = (sp_gamestate){SP_GAMESTATE_USER, id, update, draw};
+    state_manager.game_states[SP_GAMESTATE_USER + id] = (sp_gamestate){SP_GAMESTATE_USER, id, update, draw, enter, exit};
+    
     spice_info("Registered gamestate to %d with id %d\n", SP_GAMESTATE_USER + id, id);
 }
 

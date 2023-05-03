@@ -2,6 +2,7 @@
 #include <spice_graphics.h>
 #include <tm_matrix.h>
 #include <tm_vector.h>
+#include <stb_image.h>
 
 static spice_mesh_manager mesh_manager = {0};
 static spice_point_sprite_manager point_sprite_manager = {0};
@@ -392,6 +393,15 @@ void spicePointSpritesInit(uint32_t ps_max, uint32_t texture_count, uint32_t max
 
 void spicePointSpriteSetTexture(uint8_t idx, char* img){
     spiceTextureArrayLoad(point_sprite_manager.textures, img, idx);
+}
+
+void spicePointSpriteSetTextureFromMemory(uint8_t idx, char* data, size_t size){
+    int w, h, channels;
+    unsigned char* img = stbi_load_from_memory(data, size, &w, &h, &channels, 4);
+
+    spiceTextureArrayLoadData(point_sprite_manager.textures, w, h, img, idx);
+
+    stbi_image_free(img);
 }
 
 sp_point_sprite* spicePointSpriteNew(){

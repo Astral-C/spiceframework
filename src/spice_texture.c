@@ -145,6 +145,66 @@ sp_texture* spiceTextureLoadCubeMap(char* paths[6]){
 
 }
 
+sp_texture* spiceTexture2DLoadMemory(char* name, char* data, size_t size){
+    uint64_t id = spHash(name, strlen(name));
+
+    sp_texture* found_texture = NULL;
+    for (size_t i = 0; i < texture_manager.texture_max; i++){
+        if(texture_manager.textures[i]._id == id){ // Sprite already loaded, return it. Or a collision. Oop-
+            texture_manager.textures[i]._ref_count++;
+            return &texture_manager.textures[i];
+        }
+        
+        if(texture_manager.textures[i]._ref_count == 0){
+            found_texture = &texture_manager.textures[i];
+        }
+    }
+
+    // Out of texture space
+    if(found_texture == NULL){
+        spice_error("Out of texture space!\n");
+        return NULL;
+    }
+
+    // Try to load the image...
+    int w, h, channels;
+    unsigned char* img = stbi_load_from_memory(data, size, &w, &h, &channels, 4);
+            
+    if(img == NULL){
+        spice_error("STBI Couldn't load image!\n");
+        return NULL; //and I oop- can't load the sprite
+    }
+    
+    // Finalize setup and then return
+
+    found_texture->_ref_count++;
+
+    found_texture->_id = id;
+
+    found_texture->width = w;
+    found_texture->height = h;
+    spice_info("Created Texture 2D %p\n", found_texture);
+
+    glGenTextures(1, &found_texture->texture_id);
+
+    glBindTexture(GL_TEXTURE_2D, found_texture->texture_id);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, img);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    
+    found_texture->_bind_point = GL_TEXTURE_2D;
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    stbi_image_free(img);
+
+    return found_texture;
+}
+
 sp_texture* spiceTexture2DLoad(char* path){
     uint64_t id = spHash(path, strlen(path));
 

@@ -33,6 +33,8 @@ sp_texture* spiceTextureLoadCubeMap(char* paths[6]);
 
 sp_texture* spiceTexture2DLoad(char* path);
 
+sp_texture* spiceTexture2DLoadMemory(char* name, char* data, size_t size);
+
 void spiceTextureFree(sp_texture* texture);
 
 void spiceTextureBind(sp_texture* texture, GLuint tex_unit);

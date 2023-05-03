@@ -20,6 +20,9 @@ typedef struct {
     float volume;
     int loop;
 
+    int fadein, fadeout;
+    float fadespeed;
+
     void* data;
 } sp_clip;
 
@@ -51,5 +54,6 @@ typedef struct {
 void spiceMixerInit(int clip_max);
 sp_clip* spiceMixerLoadWav(char* path);
 void spiceMixerPause(int pause);
+void spiceMixerSetVolume(float volume);
 
 #endif

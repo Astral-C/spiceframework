@@ -13,6 +13,9 @@ typedef struct GS_S {
     int id;
     void (*update)();
     void (*draw)();
+
+    void (*enter)();
+    void (*exit)();
 } sp_gamestate;
 
 typedef struct GMS_S {
@@ -33,7 +36,7 @@ typedef struct GMS_S {
 
 void spiceGamestateInit(int state_count);
 
-void spiceGamestateRegister(int id, void (*update)(), void (*draw)());
+void spiceGamestateRegister(int id, void (*update)(), void (*draw)(), void (*enter)(), void (*exit)());
 void spiceGamestateChange(int id, int transition);
 void spiceGamestateUpdate();
 int spiceGamestateGet();

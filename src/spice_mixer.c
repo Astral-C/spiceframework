@@ -43,6 +43,26 @@ void spiceMixerMix(void *userdata, uint8_t *stream, int len){
         //Mix Clips here
         for(sp_clip* clip = mixer.clips; clip < mixer.clips + mixer.max_clips; clip++){
             if(clip->_in_use && clip->playing){
+
+                if(clip->fadein == 1 && clip->volume < 1){
+                    clip->volume += clip->fadespeed;
+                }
+
+                if(clip->fadeout == 1 && clip->volume > 0){
+                    clip->volume -= clip->fadespeed;
+                }
+
+                if(clip->fadein && clip->volume >= 1){
+                    clip->fadein = 0;
+                    clip->volume = 1;
+                }
+                
+                if(clip->fadeout && clip->volume <= 0){
+                    clip->fadeout = 0;
+                    clip->playing = 0;
+                    clip->volume = 0;
+                }
+
                 spiceMixClip(clip, (int16_t*)stream, (uint32_t)(len/2));
             }
         }
@@ -59,6 +79,7 @@ void spiceMixerCleanup(){
     SDL_CloseAudioDevice(mixer._device);
 }
 
+//TODO: allow user to pass in custom mix function. per clip?
 void spiceMixerInit(int clip_max){
     mixer.max_clips = clip_max;
     mixer.clips = malloc(sizeof(sp_clip)*clip_max);
@@ -72,7 +93,7 @@ void spiceMixerInit(int clip_max){
 	target_format.callback = spiceMixerMix;
 	target_format.userdata = NULL;
 
-    mixer.volume = 0.5;
+    mixer.volume = 0.5f;
 
     mixer._target_spec = target_format;
     mixer._device = SDL_OpenAudioDevice(NULL, 0, &mixer._target_spec, &mixer._device_spec, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE);
@@ -85,6 +106,9 @@ void spiceMixerInit(int clip_max){
     atexit(spiceMixerCleanup);
 }
 
+void spiceMixerSetVolume(float volume){
+    mixer.volume = 0.5f * volume;
+}
 
 sp_clip* spiceMixerLoadWav(char* path){
     for(sp_clip* clip = mixer.clips; clip < mixer.clips + mixer.max_clips; clip++){
