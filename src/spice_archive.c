@@ -80,6 +80,7 @@ prkArcFile* prkArchiveGetFile(prkArchive* arc, sp_str name){
 }
 
 void prkArchiveClose(prkArchive* arc){
+    spice_info("Cleaning up archive...\n");
     free(arc->files);
     free(arc->_raw_file_data);
     free(arc);
